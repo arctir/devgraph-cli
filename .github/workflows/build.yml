@@ -1,0 +1,43 @@
+name: Release Go CLI with GoReleaser
+
+# Workflow-wide environment variables
+env:
+  CLI_NAME: "devgraph" # Your CLI's name, used in .goreleaser.yaml
+
+on:
+  release:
+    types: [published] # Trigger on published releases (not drafts)
+
+permissions:
+  contents: write # Required to upload assets to the release
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the repository with full history
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Needed for changelog generation
+
+      # Set up Go environment
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23' # Match your project's Go version
+          cache: true # Cache Go modules for faster builds
+
+      # Run GoReleaser to build and release
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser # Use 'goreleaser-pro' for pro features
+          version: '~> v2' # Pin to v2.x, or use 'latest'
+          args: release --clean # Build and publish, clean build dir after
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Auth for GitHub Releases
+
+      # Optional: Print release URL (for debugging or logs)
+      - name: Print Release URL
+        run: echo "Release published at ${{ github.event.release.html_url }}"

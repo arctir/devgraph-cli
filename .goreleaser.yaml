@@ -1,35 +1,36 @@
 # .goreleaser.yaml
+version: 2
+
 builds:
   - env:
-      - CGO_ENABLED=0 # Disable CGO for static binaries
-    goos: # Platforms to build for
-      - linux
-      - windows
-      - darwin
-    goarch: # Architectures
-      - amd64
-      - arm64
-    ldflags: # Embed version info
+      - CGO_ENABLED=0
+    targets:
+      - linux_amd64
+      - linux_arm64
+      - windows_amd64
+      - darwin_amd64
+      - darwin_arm64
+    ldflags:
       - -s -w -X main.Version={{.Tag}}
-    binary: "{{ .Env.CLI_NAME }}" # Use the workflow env var
+    binary: "{{ .Env.CLI_NAME }}"
 
 archives:
-  - format: tar.gz # Archive format (tar.gz for Linux/macOS)
+  - format: tar.gz
     name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
-    replacements:
-      darwin: macOS
-      amd64: x86_64
-  - format: zip # Use zip for Windows
-    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
-    files: # Include extra files if needed
+    files:
       - README.md
-      - LICENSE
+  - format: zip
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+    builds:
+      - windows_amd64
+    files:
+      - README.md
 
 release:
-  github: # Publish to GitHub Releases
+  github:
     owner: "{{ .Owner }}"
     name: "{{ .Repo }}"
 
 changelog:
-  skip: false # Generate a changelog from commits
-  use: github # Use GitHub-style changelog
+  disable: false # Replaced 'skip' with 'disable'
+  use: github

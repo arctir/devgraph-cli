@@ -4,7 +4,7 @@ name: Release Go CLI with GoReleaser
 env:
   CLI_NAME: "devgraph" # Your CLI's name, used in .goreleaser.yaml
 
-on:
+on:git 
   release:
     types: [published] # Trigger on published releases (not drafts)
 

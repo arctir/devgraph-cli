@@ -14,22 +14,7 @@ builds:
       - -s -w -X main.Version={{.Tag}}
     binary: "{{ .Env.CLI_NAME }}"
 
-archives:
-  - format: tar.gz
-    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
-    files:
-      - README.md
-  - format: zip
-    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
-    builds:
-      - windows_amd64
-    files:
-      - README.md
-
-release:
-  github:
-    owner: "{{ .Owner }}"
-    name: "{{ .Repo }}"
+release: {}
 
 changelog:
   disable: false # Replaced 'skip' with 'disable'

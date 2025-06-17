@@ -11,9 +11,9 @@ type Auth struct {
 }
 
 type Credentials struct {
-	AccessToken  string         `yaml:"access_token"`
-	RefreshToken string         `yaml:"refresh_token"`
-	IDToken      string         `yaml:"id_token"`
+	AccessToken  string         `yaml:"access_token,omitempty"`
+	RefreshToken string         `yaml:"refresh_token,omitempty"`
+	IDToken      string         `yaml:"id_token,omitempty"`
 	Claims       *jwt.MapClaims `yaml:"claims,omitempty"`
 }
 

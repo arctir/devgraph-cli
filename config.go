@@ -8,13 +8,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const DefaultIssuerURL = "https://quiet-tick-81.clerk.accounts.dev"
-const DefaultClientID = "nVepR7rl1z1LYMBm"
+const DefaultIssuerURL = "https://primary-ghoul-65.clerk.accounts.dev"
+const DefaultClientID = "renbud3BkDcW1utM"
 const DefaultRedirectURL = "http://localhost:8080/callback"
 
 type Config struct {
-	IssuerURL   string `kong:"default='https://quiet-tick-81.clerk.accounts.dev',env='DEVGRAPH_ISSUER_URL',help='Devgraph issuer URL'"`
-	ClientID    string `kong:"default='nVepR7rl1z1LYMBm',env='DEVGRAPH_CLIENT_ID',help='Devgraph client ID'"`
+	ApiURL      string `kong:"default='http://localhost:8000/api/v1/model',env='DEVGRAPH_API_URL',help='Devgraph API URL'"`
+	IssuerURL   string `kong:"default='https://primary-ghoul-65.clerk.accounts.dev',env='DEVGRAPH_ISSUER_URL',help='Devgraph issuer URL'"`
+	ClientID    string `kong:"default='renbud3BkDcW1utM',env='DEVGRAPH_CLIENT_ID',help='Devgraph client ID'"`
 	RedirectURL string `kong:"default='http://localhost:8080/callback',env='DEVGRAPH_REDIRECT_URL',help='Redirect URL'"`
 
 	Model     string `kong:"default='gpt-3.5-turbo',short='m',help='OpenAI model to use'"`

@@ -12,6 +12,7 @@ require (
 	github.com/sashabaranov/go-openai v1.38.1
 	golang.org/x/oauth2 v0.28.0
 	golang.org/x/sync v0.10.0
+	golang.org/x/term v0.30.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

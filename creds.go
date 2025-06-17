@@ -25,6 +25,7 @@ func saveCredentials(creds Credentials) error {
 	if err != nil {
 		return err
 	}
+
 	data, err := yaml.Marshal(creds)
 	if err != nil {
 		return err

@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"bufio"
@@ -8,20 +8,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/arctir/devgraph-cli/pkg/config"
+	"github.com/arctir/devgraph-cli/pkg/util"
 	"github.com/fatih/color"
 	"github.com/sashabaranov/go-openai"
-	"golang.org/x/oauth2"
 	"golang.org/x/term"
 )
 
 type Chat struct {
-	Config
+	config.Config
 }
 
 var cyan = color.New(color.FgCyan).SprintFunc()
 var boldCyan = color.New(color.FgCyan, color.Bold).SprintFunc()
 var green = color.New(color.FgGreen).SprintFunc()
+var red = color.New(color.FgRed).SprintFunc()
 
 const smallHeader = "devgraph.ai"
 
@@ -53,73 +54,23 @@ func devgraphPrompt() {
 }
 
 func (c *Chat) Run() error {
-
-	environment := os.Getenv("DEVGRAPH_ENVIRONMENT")
-	if environment == "" {
-		return fmt.Errorf("DEVGRAPH_ENVIRONMENT is not set")
-	}
-
-	creds, err := loadCredentials()
+	authHttpClient, err := util.GetAuthenticatedHTTPClient(c.Config)
 	if err != nil {
-		return fmt.Errorf("failed to load credentials: %v", err)
+		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
 
-	endpoints, err := getWellKnownEndpoints(c.IssuerURL)
-	if err != nil {
-		return fmt.Errorf("failed to get well-known endpoints: %v", err)
-	}
-	oauth2Config := oauth2.Config{
-		ClientID:    c.ClientID,
-		RedirectURL: c.RedirectURL,
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  endpoints.AuthorizationEndpoint,
-			TokenURL: endpoints.TokenEndpoint,
-		},
-		Scopes: []string{"openid", "profile", "email"},
-	}
-
-	var exp float64
-	exp, _ = (*creds.Claims)["exp"].(float64)
-
-	expTime := time.Unix(int64(exp), 0)
-	if exp > 0 {
-		expTime = expTime.Add(-30 * time.Second)
-	}
-
-	token := &oauth2.Token{
-		AccessToken:  creds.IDToken,
-		RefreshToken: creds.RefreshToken,
-		TokenType:    "Bearer",
-		Expiry:       expTime,
-	}
-
-	provider, err := oidc.NewProvider(context.Background(), c.IssuerURL)
-	if err != nil {
-		return fmt.Errorf("failed to create OIDC provider: %v", err)
-	}
-
-	tokenManager := NewOIDCTokenManager(
-		oauth2Config,
-		token,
-		provider,
-		environment,
-	)
-	httpClient := tokenManager.HTTPClient()
-
-	clientConfig := openai.DefaultConfig(creds.IDToken)
-	clientConfig.BaseURL = c.Config.ApiURL
-	clientConfig.HTTPClient = httpClient // Use the HTTP client that auto-refreshes the token
+	clientConfig := openai.DefaultConfig("")
+	clientConfig.BaseURL = c.Config.ApiURL + "/api/v1/model"
+	clientConfig.HTTPClient = authHttpClient
 	client := openai.NewClientWithConfig(clientConfig)
+
 	ctx := context.Background()
 
-	var messages []openai.ChatCompletionMessage
-	username, ok := (*creds.Claims)["preferred_username"].(string)
-	if !ok {
-		username, ok = (*creds.Claims)["email"].(string)
-		if !ok {
-			username = "localuser"
-		}
+	username, err := util.GetUsername()
+	if err != nil {
+		return fmt.Errorf("failed to get username: %w", err)
 	}
+	var messages []openai.ChatCompletionMessage
 
 	width, _, err := term.GetSize(int(os.Stdout.Fd()))
 	if err == nil && width > 75 {
@@ -156,13 +107,13 @@ func (c *Chat) Run() error {
 		})
 
 		resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-			Model:     c.Model,
+			Model:     "gpt-4o-mini", //c.Model,
 			Messages:  messages,
 			MaxTokens: c.MaxTokens,
 		})
 		if err != nil {
 			devgraphPrompt()
-			typeWriter("Oops! It seems like there was an error while generating a response. " + err.Error() + "\n")
+			fmt.Print(red(fmt.Sprintf("Oops! It seems like there was an error while generating a response.\n%s\n", err.Error())))
 			continue
 		}
 

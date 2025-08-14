@@ -1,2 +1,5 @@
 devgraph
 devgraph-cli
+coverage.*
+dist
+go.work*

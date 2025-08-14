@@ -1,4 +1,4 @@
-package main
+package auth
 
 import (
 	"context"
@@ -73,13 +73,13 @@ func (m *OIDCTokenManager) Token() (*oauth2.Token, error) {
 
 	// Update stored token if it has changed
 	if newToken.AccessToken != m.token.AccessToken {
-		creds, err := loadCredentials()
+		creds, err := LoadCredentials()
 		if err != nil {
 			fmt.Printf("Failed to load existing credentials: %v\n", err)
 			panic(err)
 		}
 		creds.RefreshToken = newToken.RefreshToken
-		err = saveCredentials(*creds)
+		err = SaveCredentials(*creds)
 		if err != nil {
 			fmt.Printf("Failed to save refreshed token: %v\n", err)
 			panic(err)

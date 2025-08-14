@@ -1,4 +1,4 @@
-package main
+package auth
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/arctir/devgraph-cli/pkg/config"
 	oidc "github.com/coreos/go-oidc/v3/oidc"
 	"github.com/int128/oauth2cli"
 	"github.com/int128/oauth2cli/oauth2params"
@@ -56,7 +57,7 @@ func getWellKnownEndpoints(issuerURL string) (*WellKnownConfig, error) {
 	return &config, nil
 }
 
-func authenticate(a Config) (*oauth2.Token, error) {
+func Authenticate(a config.Config) (*oauth2.Token, error) {
 	ctx := context.Background()
 	ready := make(chan string, 1)
 	tokenChan := make(chan *oauth2.Token, 1)

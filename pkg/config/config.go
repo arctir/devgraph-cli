@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"fmt"
@@ -13,10 +13,11 @@ const DefaultClientID = "renbud3BkDcW1utM"
 const DefaultRedirectURL = "http://localhost:8080/callback"
 
 type Config struct {
-	ApiURL      string `kong:"default='http://localhost:8000/api/v1/model',env='DEVGRAPH_API_URL',help='Devgraph API URL'"`
+	ApiURL      string `kong:"default='https://api.staging.devgraph.ai',env='DEVGRAPH_API_URL',help='Devgraph API URL'"`
 	IssuerURL   string `kong:"default='https://primary-ghoul-65.clerk.accounts.dev',env='DEVGRAPH_ISSUER_URL',help='Devgraph issuer URL'"`
 	ClientID    string `kong:"default='renbud3BkDcW1utM',env='DEVGRAPH_CLIENT_ID',help='Devgraph client ID'"`
 	RedirectURL string `kong:"default='http://localhost:8080/callback',env='DEVGRAPH_REDIRECT_URL',help='Redirect URL'"`
+	Environment string `kong:"env='DEVGRAPH_ENVIRONMENT',help='Environment (development, staging, production)'"`
 
 	Model     string `kong:"default='gpt-3.5-turbo',short='m',help='OpenAI model to use'"`
 	MaxTokens int    `kong:"default=1000,short='t',help='Maximum number of tokens in response'"`

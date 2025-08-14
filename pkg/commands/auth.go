@@ -1,20 +1,15 @@
-package main
+package commands
 
 import (
 	"fmt"
 
+	"github.com/arctir/devgraph-cli/pkg/auth"
+	"github.com/arctir/devgraph-cli/pkg/config"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type Auth struct {
-	Config
-}
-
-type Credentials struct {
-	AccessToken  string         `yaml:"access_token,omitempty"`
-	RefreshToken string         `yaml:"refresh_token,omitempty"`
-	IDToken      string         `yaml:"id_token,omitempty"`
-	Claims       *jwt.MapClaims `yaml:"claims,omitempty"`
+	config.Config
 }
 
 func parseJWT(tokenString string) (*jwt.MapClaims, error) {
@@ -33,7 +28,7 @@ func parseJWT(tokenString string) (*jwt.MapClaims, error) {
 }
 
 func (a *Auth) Run() error {
-	token, err := authenticate(a.Config)
+	token, err := auth.Authenticate(a.Config)
 	if err != nil {
 		return err
 	}
@@ -43,14 +38,14 @@ func (a *Auth) Run() error {
 		fmt.Println("Error parsing JWT:", err)
 	}
 
-	creds := Credentials{
+	creds := auth.Credentials{
 		AccessToken:  token.AccessToken,
 		RefreshToken: token.RefreshToken,
 		IDToken:      token.Extra("id_token").(string),
 		Claims:       claims,
 	}
 
-	err = saveCredentials(creds)
+	err = auth.SaveCredentials(creds)
 	if err != nil {
 		return err
 	}

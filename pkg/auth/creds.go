@@ -1,12 +1,20 @@
-package main
+package auth
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/golang-jwt/jwt/v5"
 	"gopkg.in/yaml.v3"
 )
+
+type Credentials struct {
+	AccessToken  string         `yaml:"access_token,omitempty"`
+	RefreshToken string         `yaml:"refresh_token,omitempty"`
+	IDToken      string         `yaml:"id_token,omitempty"`
+	Claims       *jwt.MapClaims `yaml:"claims,omitempty"`
+}
 
 func getCredentialsPath(appName string) (string, error) {
 	configDir, err := os.UserConfigDir()
@@ -20,7 +28,7 @@ func getCredentialsPath(appName string) (string, error) {
 	return filepath.Join(appDir, "credentials.yaml"), nil
 }
 
-func saveCredentials(creds Credentials) error {
+func SaveCredentials(creds Credentials) error {
 	filePath, err := getCredentialsPath("devgraph")
 	if err != nil {
 		return err
@@ -33,7 +41,7 @@ func saveCredentials(creds Credentials) error {
 	return os.WriteFile(filePath, data, 0600)
 }
 
-func loadCredentials() (*Credentials, error) {
+func LoadCredentials() (*Credentials, error) {
 	filepath, err := getCredentialsPath("devgraph")
 	if err != nil {
 		return nil, err

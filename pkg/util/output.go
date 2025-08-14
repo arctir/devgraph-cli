@@ -37,17 +37,8 @@ func DisplayTable(data []map[string]interface{}, headers []string) {
 			}
 			rowData = append(rowData, value)
 		}
-		table.Append(rowData)
+		table.Append(rowData) //nolint:errcheck
 	}
 
-	// Set table formatting
-	/*table.SetAutoFormatHeaders(true)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetCenterSeparator("|")
-	table.SetColumnSeparator("|")
-	table.SetRowSeparator("-")
-	*/
-	// Render the table
-	table.Render()
+	table.Render() //nolint:errcheck
 }

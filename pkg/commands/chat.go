@@ -60,7 +60,7 @@ func (c *Chat) Run() error {
 	}
 
 	clientConfig := openai.DefaultConfig("")
-	clientConfig.BaseURL = c.Config.ApiURL + "/api/v1/model"
+	clientConfig.BaseURL = c.ApiURL + "/api/v1/model"
 	clientConfig.HTTPClient = authHttpClient
 	client := openai.NewClientWithConfig(clientConfig)
 

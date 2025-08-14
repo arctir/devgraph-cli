@@ -155,10 +155,9 @@ func (e *ModelProviderDeleteCommand) Run() error {
 	return nil
 }
 
-func displayModelProviders(providers *[]devgraphv1.ModelProviderResponse) error {
+func displayModelProviders(providers *[]devgraphv1.ModelProviderResponse) {
 	if providers == nil || len(*providers) == 0 {
 		fmt.Println("No environments found.")
-		return nil
 	}
 
 	headers := []string{"ID", "Name", "Type"}
@@ -166,7 +165,8 @@ func displayModelProviders(providers *[]devgraphv1.ModelProviderResponse) error 
 	for i, provider := range *providers {
 		providerType, err := provider.Discriminator()
 		if err != nil {
-			return err
+			fmt.Printf("Failed to determine provider type: %v\n", err)
+			continue
 		}
 		if providerType == "xai" {
 			p, err := provider.AsXAIModelProviderResponse()
@@ -191,5 +191,4 @@ func displayModelProviders(providers *[]devgraphv1.ModelProviderResponse) error 
 		}
 	}
 	util.DisplayTable(data, headers)
-	return nil
 }

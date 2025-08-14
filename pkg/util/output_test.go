@@ -59,11 +59,17 @@ func TestDisplayTable(t *testing.T) {
 
 			DisplayTable(tt.data, tt.headers)
 
-			w.Close()
+			err := w.Close()
+			if err != nil {
+				t.Fatalf("Failed to close pipe: %v", err)
+			}
 			os.Stdout = old
 
 			var buf bytes.Buffer
-			buf.ReadFrom(r)
+			_, err = buf.ReadFrom(r)
+			if err != nil {
+				t.Fatalf("Failed to read from pipe: %v", err)
+			}
 			output := buf.String()
 
 			for _, expected := range tt.contains {
@@ -92,11 +98,17 @@ func TestDisplayTable_EmptyHeaders(t *testing.T) {
 
 	DisplayTable(data, headers)
 
-	w.Close()
+	err := w.Close()
+	if err != nil {
+		t.Fatalf("Failed to close pipe: %v", err)
+	}
 	os.Stdout = old
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, err = buf.ReadFrom(r)
+	if err != nil {
+		t.Fatalf("Failed to read from pipe: %v", err)
+	}
 	output := buf.String()
 
 	assert.NotContains(t, output, "Alice")

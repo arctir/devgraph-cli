@@ -7,7 +7,6 @@ import (
 	"github.com/arctir/devgraph-cli/pkg/config"
 	"github.com/arctir/devgraph-cli/pkg/util"
 	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
-	v1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
 	"github.com/google/uuid"
 )
 
@@ -73,7 +72,7 @@ func (e *ModelCreateCommand) Run() error {
 	}
 
 	model := response.JSON201
-	models := []v1.ModelResponse{*model}
+	models := []devgraphv1.ModelResponse{*model}
 	displayModels(&models)
 
 	return nil
@@ -140,10 +139,9 @@ func (e *ModelDeleteCommand) Run() error {
 	return nil
 }
 
-func displayModels(models *[]devgraphv1.ModelResponse) error {
+func displayModels(models *[]devgraphv1.ModelResponse) {
 	if models == nil || len(*models) == 0 {
 		fmt.Println("No models found.")
-		return nil
 	}
 
 	headers := []string{"ID", "Name", "Provider ID"}
@@ -156,5 +154,4 @@ func displayModels(models *[]devgraphv1.ModelResponse) error {
 		}
 	}
 	util.DisplayTable(data, headers)
-	return nil
 }

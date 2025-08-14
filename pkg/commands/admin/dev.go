@@ -23,7 +23,7 @@ func (e *DevEnvironmentCreateCommand) Run() error {
 		return err
 	}
 
-	url := fmt.Sprintf("%s/api/v1/dev/environments", e.Config.ApiURL)
+	url := fmt.Sprintf("%s/api/v1/dev/environments", e.ApiURL)
 
 	// Create new request
 	req, err := http.NewRequest("POST", url, nil)
@@ -35,7 +35,7 @@ func (e *DevEnvironmentCreateCommand) Run() error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	// Read response body
 	body, err := io.ReadAll(resp.Body)

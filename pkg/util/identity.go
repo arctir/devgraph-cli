@@ -8,9 +8,6 @@ func GetUsername() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if creds.Claims == nil {
-		username = "localuser"
-	}
 
 	var ok bool
 	username, ok = (*creds.Claims)["preferred_username"].(string)

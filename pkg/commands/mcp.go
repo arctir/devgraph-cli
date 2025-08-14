@@ -101,7 +101,7 @@ func (e *MCPGetCommand) Run() error {
 func (e *MCPListCommand) Run() error {
 
 	fmt.Println("Fetching MCP endpoints...")
-	fmt.Printf("Using environment: %s\n", e.Config.Environment)
+	fmt.Printf("Using environment: %s\n", e.Environment)
 
 	client, err := util.GetAuthenticatedClient(*e.Config)
 	if err != nil {

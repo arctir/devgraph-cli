@@ -26,7 +26,7 @@ jobs:
 
       - name: Configure Git for private modules
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ARCTIR_GH_ACTIONS_TOKEN }}
         run: git config --global url."https://x-oauth-basic:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com"
 
       - name: Install dependencies

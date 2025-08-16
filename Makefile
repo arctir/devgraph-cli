@@ -1,6 +1,13 @@
 # Devgraph CLI Makefile
 
+# Binary name (can be overridden)
+BINARY_NAME ?= devgraph
+
 .PHONY: test test-verbose test-cover build clean lint fmt help
+
+# Build the binary
+build:
+	go build -o $(BINARY_NAME) .
 
 # Default target
 help:
@@ -26,13 +33,9 @@ test-cover:
 	go test -race -coverprofile=coverage.out -covermode=atomic ./...
 	go tool cover -html=coverage.out -o coverage.html
 
-# Build the binary
-build:
-	go build -o devgraph-cli .
-
 # Clean build artifacts
 clean:
-	rm -f devgraph-cli coverage.out coverage.html
+	rm -f $(BINARY_NAME) coverage.out coverage.html
 
 # Format code
 fmt:

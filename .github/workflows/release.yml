@@ -5,8 +5,8 @@ env:
   CLI_NAME: "devgraph" # Your CLI's name, used in .goreleaser.yaml
 
 on:
-  release:
-    types: [published] # Trigger on published releases (not drafts)
+  push:
+    branches:
 
 permissions:
   contents: write # Required to upload assets to the release

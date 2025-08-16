@@ -98,7 +98,7 @@ func (a *TokenList) Run() error {
 }
 
 func displayTokens(tokens *[]devgraphv1.ApiTokenResponse) {
-	headers := []string{"ID", "Name", "Scopes", "Created At", "Expires At"}
+	headers := []string{"ID", "Name", "Scopes", "Token", "Expires At"}
 
 	data := make([]map[string]interface{}, 0, len(*tokens))
 	for _, token := range *tokens {
@@ -110,6 +110,7 @@ func displayTokens(tokens *[]devgraphv1.ApiTokenResponse) {
 			"ID":         token.Id,
 			"Name":       token.Name,
 			"Scopes":     strings.Join(*token.Scopes, ", "),
+			"Token":     token.Token,
 			"Expires At": expiresAt,
 		})
 	}

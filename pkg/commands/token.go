@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/arctir/devgraph-cli/pkg/config"
 	"github.com/arctir/devgraph-cli/pkg/util"
 	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
 	"k8s.io/utils/ptr"
@@ -18,13 +17,13 @@ type TokenCommand struct {
 }
 
 type TokenCreate struct {
-	config.Config
+	EnvWrapperCommand
 	Name   string   `arg:"" name:"name" help:"Name of the opaque token to create"`
 	Scopes []string `arg:"" name:"scopes" help:"Scopes for the opaque token"`
 }
 
 type TokenList struct {
-	config.Config
+	EnvWrapperCommand
 }
 
 var allowedScopes = []string{
@@ -110,7 +109,7 @@ func displayTokens(tokens *[]devgraphv1.ApiTokenResponse) {
 			"ID":         token.Id,
 			"Name":       token.Name,
 			"Scopes":     strings.Join(*token.Scopes, ", "),
-			"Token":     token.Token,
+			"Token":      token.Token,
 			"Expires At": expiresAt,
 		})
 	}

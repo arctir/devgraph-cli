@@ -4,13 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/arctir/devgraph-cli/pkg/config"
 	"github.com/arctir/devgraph-cli/pkg/util"
 	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
 )
 
 type MCPCommand struct {
-	*config.Config
 	Create MCPCreateCommand `cmd:"create" help:"Create a new MCP resource."`
 	Get    MCPGetCommand    `cmd:"get" help:"Retrieve an MCP resource by ID."`
 	List   MCPListCommand   `cmd:"" help:"List MCP resources."`
@@ -18,36 +16,28 @@ type MCPCommand struct {
 }
 
 type MCPCreateCommand struct {
-	*config.Config
+	EnvWrapperCommand
 	Name        string `arg:"" required:"" help:"Name of the MCP resource to create."`
 	Url         string `arg:"" required:"" help:"URL of the MCP resource to create."`
 	Description string `arg:"" optional:"" help:"Description of the MCP resource."`
 }
 
 type MCPListCommand struct {
-	*config.Config
+	EnvWrapperCommand
 }
 
 type MCPGetCommand struct {
-	*config.Config
+	EnvWrapperCommand
 	Id string `arg:"" required:"" help:"ID of the MCP resource to retrieve."`
 }
 
 type MCPDeleteCommand struct {
-	*config.Config
+	EnvWrapperCommand
 	Id string `arg:"" required:"" help:"ID of the MCP resource to delete."`
 }
 
-func (e *MCPCommand) BeforeApply() error {
-	ok, err := util.CheckEnvironment(e.Config)
-	if !ok {
-		return err
-	}
-	return nil
-}
-
 func (e *MCPCreateCommand) Run() error {
-	client, err := util.GetAuthenticatedClient(*e.Config)
+	client, err := util.GetAuthenticatedClient(e.Config)
 	if err != nil {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
@@ -72,7 +62,7 @@ func (e *MCPCreateCommand) Run() error {
 }
 
 func (e *MCPGetCommand) Run() error {
-	client, err := util.GetAuthenticatedClient(*e.Config)
+	client, err := util.GetAuthenticatedClient(e.Config)
 	if err != nil {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
@@ -99,11 +89,7 @@ func (e *MCPGetCommand) Run() error {
 }
 
 func (e *MCPListCommand) Run() error {
-
-	fmt.Println("Fetching MCP endpoints...")
-	fmt.Printf("Using environment: %s\n", e.Environment)
-
-	client, err := util.GetAuthenticatedClient(*e.Config)
+	client, err := util.GetAuthenticatedClient(e.Config)
 	if err != nil {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
@@ -137,7 +123,7 @@ func (e *MCPListCommand) Run() error {
 }
 
 func (e *MCPDeleteCommand) Run() error {
-	client, err := util.GetAuthenticatedClient(*e.Config)
+	client, err := util.GetAuthenticatedClient(e.Config)
 	if err != nil {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}

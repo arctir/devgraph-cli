@@ -12,6 +12,13 @@ import (
 	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
 )
 
+type NoEnvironmentError struct {
+}
+
+func (e *NoEnvironmentError) Error() string {
+	return "User is not associated with any environments"
+}
+
 func GetEnvironments(config config.Config) (*[]devgraphv1.EnvironmentResponse, error) {
 	client, err := GetAuthenticatedClient(config)
 	if err != nil {
@@ -40,6 +47,16 @@ func CheckEnvironment(config *config.Config) (bool, error) {
 		envs, err := GetEnvironments(*config)
 		if err != nil {
 			return false, fmt.Errorf("failed to get environments: %w", err)
+		}
+
+		if envs == nil || len(*envs) == 0 {
+			return false, &NoEnvironmentError{}
+		}
+
+		if len(*envs) == 1 {
+			config.Environment = (*envs)[0].Id.String()
+			fmt.Printf("Only one environment available. Environment set to: %s\n", config.Environment)
+			return true, nil
 		}
 
 		fmt.Println("Environment not set. Available environments:")

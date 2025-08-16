@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/arctir/devgraph-cli/pkg/config"
 	"github.com/arctir/devgraph-cli/pkg/util"
 	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
 )
@@ -17,7 +16,7 @@ type ModelProviderCommand struct {
 }
 
 type ModelProviderCreateCommand struct {
-	config.Config
+	EnvWrapperCommand
 	Type    string `arg:"" enum:"openai,xai" required:"" help:"Type of the ModelProvider resource to create (e.g., 'openai')."`
 	Name    string `arg:"" required:"" help:"Name of the ModelProvider resource to create."`
 	ApiKey  string `arg:"" required:"" help:"API key for the ModelProvider resource."`
@@ -25,16 +24,16 @@ type ModelProviderCreateCommand struct {
 }
 
 type ModelProviderListCommand struct {
-	config.Config
+	EnvWrapperCommand
 }
 
 type ModelProviderGetCommand struct {
-	config.Config
+	EnvWrapperCommand
 	Id string `arg:"" required:"" help:"ID of the ModelProvider resource to retrieve."`
 }
 
 type ModelProviderDeleteCommand struct {
-	config.Config
+	EnvWrapperCommand
 	Id string `arg:"" required:"" help:"ID of the ModelProvider resource to delete."`
 }
 

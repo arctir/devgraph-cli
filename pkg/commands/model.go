@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/arctir/devgraph-cli/pkg/config"
 	"github.com/arctir/devgraph-cli/pkg/util"
 	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
 	"github.com/google/uuid"
@@ -18,7 +17,7 @@ type ModelCommand struct {
 }
 
 type ModelCreateCommand struct {
-	config.Config
+	EnvWrapperCommand
 	ProviderID  string  `arg:"" required:"" help:"ID of the Model Provider to create this Model under."`
 	Name        string  `arg:"" required:"" help:"Name of the Model resource to create."`
 	Description *string `arg:"" optional:"" help:"Description of the Model resource."`
@@ -26,16 +25,16 @@ type ModelCreateCommand struct {
 }
 
 type ModelListCommand struct {
-	config.Config
+	EnvWrapperCommand
 }
 
 type ModelGetCommand struct {
-	config.Config
+	EnvWrapperCommand
 	Id string `arg:"" required:"" help:"ID of the Model resource to retrieve."`
 }
 
 type ModelDeleteCommand struct {
-	config.Config
+	EnvWrapperCommand
 	Id string `arg:"" required:"" help:"ID of the Model resource to delete."`
 }
 

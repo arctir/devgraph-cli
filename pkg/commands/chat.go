@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/arctir/devgraph-cli/pkg/config"
 	"github.com/arctir/devgraph-cli/pkg/util"
 	"github.com/fatih/color"
 	"github.com/sashabaranov/go-openai"
@@ -16,7 +15,7 @@ import (
 )
 
 type Chat struct {
-	config.Config
+	EnvWrapperCommand
 }
 
 var cyan = color.New(color.FgCyan).SprintFunc()

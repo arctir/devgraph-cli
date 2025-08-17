@@ -118,7 +118,7 @@ func (e *MCPListCommand) Run() error {
 			"Url":  env.Url,
 		}
 	}
-	util.DisplayTable(data, headers)
+	util.DisplaySimpleTable(data, headers)
 	return nil
 }
 

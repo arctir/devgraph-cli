@@ -27,12 +27,21 @@ type TokenList struct {
 }
 
 var allowedScopes = []string{
-	"create:entities",
 	"create:entitydefinitions",
+	"list:entitydefinitions",
+	"delete:entitydefinitions",
+	"create:entities",
+	"read:entities",
+	"delete:entities",
 	"create:entityrelations",
+	"delete:entityrelations",
 }
 
 func checkScopeInput(list []string) bool {
+	if len(list) == 1 && list[0] == "all" {
+		return true
+	}
+
 	refMap := make(map[string]bool)
 	for _, item := range allowedScopes {
 		refMap[item] = true
@@ -48,11 +57,14 @@ func checkScopeInput(list []string) bool {
 }
 
 func (a *TokenCreate) Run() error {
-	ok := checkScopeInput(a.Scopes)
-	if !ok {
-		return fmt.Errorf("one or more scopes are invalid. Allowed scopes are: %v", allowedScopes)
+	if len(a.Scopes) == 1 && a.Scopes[0] == "all" {
+		a.Scopes = allowedScopes
+	} else {
+		ok := checkScopeInput(a.Scopes)
+		if !ok {
+			return fmt.Errorf("one or more scopes are invalid. Allowed scopes are: %v", allowedScopes)
+		}
 	}
-
 	client, err := util.GetAuthenticatedClient(a.Config)
 	if err != nil {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
@@ -114,6 +126,6 @@ func displayTokens(tokens *[]devgraphv1.ApiTokenResponse) {
 		})
 	}
 
-	util.DisplayTable(data, headers)
+	util.DisplaySimpleTable(data, headers)
 
 }

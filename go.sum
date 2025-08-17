@@ -9,6 +9,12 @@ github.com/apapsch/go-jsonmerge/v2 v2.0.0 h1:axGnT1gRIfimI7gJifB699GoE/oq+F2MU7D
 github.com/apapsch/go-jsonmerge/v2 v2.0.0/go.mod h1:lvDnEdqiQrp0O42VQGgmlKpxL1AP2+08jFMw88y4klk=
 github.com/arctir/go-devgraph v0.0.0-20250814143204-62fe9264cd63 h1:bbJzmPCwOHflG1JKgnu0X6hNRX2zApfEsRe+vGNyOtg=
 github.com/arctir/go-devgraph v0.0.0-20250814143204-62fe9264cd63/go.mod h1:R/OOn/fzQf0PxI7jsUL6M1cPk8Y1KulpBjUPO0e3vxk=
+github.com/arctir/go-devgraph v0.0.0-20250816172111-e76a3d684c0b h1:QQMEuwC+uuhQngOnuucrSE+bHKo+upqHGURa5cJsmrw=
+github.com/arctir/go-devgraph v0.0.0-20250816172111-e76a3d684c0b/go.mod h1:R/OOn/fzQf0PxI7jsUL6M1cPk8Y1KulpBjUPO0e3vxk=
+github.com/arctir/go-devgraph v0.0.0-20250816213931-db4f640e7d08 h1:uonpJWhVcwVZPKESkg/ZtnAWKqKuhAaMXF2AXqf4j+M=
+github.com/arctir/go-devgraph v0.0.0-20250816213931-db4f640e7d08/go.mod h1:R/OOn/fzQf0PxI7jsUL6M1cPk8Y1KulpBjUPO0e3vxk=
+github.com/arctir/go-devgraph v0.0.0-20250817053221-f0d2e09af603 h1:tvApstXkv1vx7lhF7WVLX2k31R6+ayf8MzqatTn0CBw=
+github.com/arctir/go-devgraph v0.0.0-20250817053221-f0d2e09af603/go.mod h1:R/OOn/fzQf0PxI7jsUL6M1cPk8Y1KulpBjUPO0e3vxk=
 github.com/bmatcuk/doublestar v1.1.1/go.mod h1:UD6OnuiIn0yFxxA2le/rnRU1G4RaI4UvFv1sNto9p6w=
 github.com/coreos/go-oidc/v3 v3.13.0 h1:M66zd0pcc5VxvBNM4pB331Wrsanby+QomQYjN8HamW8=
 github.com/coreos/go-oidc/v3 v3.13.0/go.mod h1:HaZ3szPaZ0e4r6ebqvsLWlk2Tn+aejfmrfah6hnSYEU=

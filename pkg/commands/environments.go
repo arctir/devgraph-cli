@@ -3,13 +3,12 @@ package commands
 import (
 	"fmt"
 
-	"github.com/arctir/devgraph-cli/pkg/config"
 	"github.com/arctir/devgraph-cli/pkg/util"
 	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
 )
 
 type EnvironmentListCommand struct {
-	config.Config
+	EnvWrapperCommand
 }
 
 type EnvironmentCommand struct {
@@ -46,5 +45,5 @@ func displayEnvironments(envs *[]devgraphv1.EnvironmentResponse) {
 			"Slug": env.Slug,
 		}
 	}
-	util.DisplayTable(data, headers)
+	util.DisplaySimpleTable(data, headers)
 }

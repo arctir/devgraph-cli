@@ -189,5 +189,5 @@ func displayModelProviders(providers *[]devgraphv1.ModelProviderResponse) {
 			}
 		}
 	}
-	util.DisplayTable(data, headers)
+	util.DisplaySimpleTable(data, headers)
 }

@@ -4,16 +4,24 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 )
 
 // DisplayTable takes a slice of maps (data) and headers, and displays it as a formatted table
 func DisplayTable(data []map[string]interface{}, headers []string) {
+	// Add some visual spacing before the table
+	fmt.Println()
+
 	// Create a new table writer
 	table := tablewriter.NewWriter(os.Stdout)
 
-	// Set the headers
-	table.Header(headers)
+	// Style the headers with colors but keep original case
+	styledHeaders := make([]string, len(headers))
+	for i, header := range headers {
+		styledHeaders[i] = color.New(color.FgBlue, color.Bold).Sprint(header)
+	}
+	table.Header(styledHeaders)
 
 	// Convert map data to table rows
 	for _, row := range data {
@@ -24,21 +32,39 @@ func DisplayTable(data []map[string]interface{}, headers []string) {
 			if val, ok := row[header]; ok {
 				switch v := val.(type) {
 				case string:
-					value = v
+					value = truncateString(v, 60) // Limit very long strings
 				case int:
 					value = fmt.Sprintf("%d", v)
 				case float64:
 					value = fmt.Sprintf("%.2f", v)
 				default:
-					value = fmt.Sprintf("%v", v)
+					value = truncateString(fmt.Sprintf("%v", v), 60)
 				}
 			} else {
-				value = ""
+				value = color.New(color.FgHiBlack).Sprint("-")
 			}
 			rowData = append(rowData, value)
 		}
 		table.Append(rowData) //nolint:errcheck
 	}
 
+	// The tablewriter package has limited customization options available
+	// Focus on content improvements instead of styling
+
+	// Render the table
 	table.Render() //nolint:errcheck
+
+	// Add some spacing after the table
+	fmt.Println()
+}
+
+// truncateString truncates a string to a maximum length with ellipsis
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	if maxLen <= 3 {
+		return s[:maxLen]
+	}
+	return s[:maxLen-3] + "..."
 }

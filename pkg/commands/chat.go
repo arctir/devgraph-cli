@@ -52,6 +52,10 @@ func devgraphPrompt() {
 	fmt.Print(cyan("\n@%devgraph:\n"))
 }
 
+func (*Chat) BeforeApply() error {
+	return nil
+}
+
 func (c *Chat) Run() error {
 	authHttpClient, err := util.GetAuthenticatedHTTPClient(c.Config)
 	if err != nil {
@@ -106,7 +110,7 @@ func (c *Chat) Run() error {
 		})
 
 		resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-			Model:     "gpt-4o-mini", //c.Model,
+			Model:     c.Model,
 			Messages:  messages,
 			MaxTokens: c.MaxTokens,
 		})

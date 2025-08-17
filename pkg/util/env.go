@@ -83,3 +83,38 @@ func CheckEnvironment(config *config.Config) (bool, error) {
 
 	return false, nil
 }
+
+// ValidateEnvironment checks if the given environment ID exists and is accessible
+func ValidateEnvironment(config config.Config, environmentID string) error {
+	_, err := ResolveEnvironmentUUID(config, environmentID)
+	return err
+}
+
+// ResolveEnvironmentUUID resolves an environment name, slug, or UUID to its UUID
+func ResolveEnvironmentUUID(config config.Config, environmentIdentifier string) (string, error) {
+	envs, err := GetEnvironments(config)
+	if err != nil {
+		return "", fmt.Errorf("failed to get environments: %w", err)
+	}
+
+	if envs == nil || len(*envs) == 0 {
+		return "", fmt.Errorf("no environments available")
+	}
+
+	for _, env := range *envs {
+		if env.Id.String() == environmentIdentifier || env.Slug == environmentIdentifier || env.Name == environmentIdentifier {
+			return env.Id.String(), nil
+		}
+	}
+
+	return "", fmt.Errorf("environment '%s' not found. Available environments: %v", environmentIdentifier, getEnvironmentList(*envs))
+}
+
+// getEnvironmentList returns a list of environment names/slugs for error messages
+func getEnvironmentList(envs []devgraphv1.EnvironmentResponse) []string {
+	var names []string
+	for _, env := range envs {
+		names = append(names, fmt.Sprintf("%s (%s)", env.Name, env.Slug))
+	}
+	return names
+}

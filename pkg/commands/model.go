@@ -152,5 +152,5 @@ func displayModels(models *[]devgraphv1.ModelResponse) {
 			"Provider ID": model.ProviderId,
 		}
 	}
-	util.DisplayTable(data, headers)
+	util.DisplaySimpleTable(data, headers)
 }

@@ -10,6 +10,12 @@ type EnvWrapperCommand struct {
 }
 
 func (e *EnvWrapperCommand) BeforeApply() error {
+	// Load and apply user settings
+	userConfig, err := config.LoadUserConfig()
+	if err == nil {
+		e.ApplyUserSettings(&userConfig.Settings)
+	}
+
 	ok, err := util.CheckEnvironment(&e.Config)
 	if !ok {
 		return err

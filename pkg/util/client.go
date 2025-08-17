@@ -9,33 +9,15 @@ import (
 )
 
 func GetAuthenticatedHTTPClient(config config.Config) (*http.Client, error) {
-	creds, err := auth.LoadCredentials()
-	if err != nil {
-		return nil, err
-	}
-
-	return devgraphv1.NewAuthHTTPClient(
-		config.ApiURL,
-		"https://primary-ghoul-65.clerk.accounts.dev/oauth/token",
-		config.ClientID,
-		creds.IDToken,
-		creds.RefreshToken,
-		config.Environment,
-	)
+	// Use the token manager for automatic refresh
+	return auth.AuthenticatedClient(config)
 }
 
 func GetAuthenticatedClient(config config.Config) (*devgraphv1.ClientWithResponses, error) {
-	creds, err := auth.LoadCredentials()
+	httpClient, err := GetAuthenticatedHTTPClient(config)
 	if err != nil {
 		return nil, err
 	}
 
-	return devgraphv1.NewAuthClient(
-		config.ApiURL,
-		"https://primary-ghoul-65.clerk.accounts.dev/oauth/token",
-		config.ClientID,
-		creds.IDToken,
-		creds.RefreshToken,
-		config.Environment,
-	)
+	return devgraphv1.NewClientWithResponses(config.ApiURL, devgraphv1.WithHTTPClient(httpClient))
 }

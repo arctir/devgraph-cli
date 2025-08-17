@@ -13,9 +13,8 @@ import (
 
 func AuthenticatedClient(c config.Config) (*http.Client, error) {
 	environment := c.Environment
-	if environment == "" {
-		return nil, fmt.Errorf("environment is not set")
-	}
+	// Note: For some operations like listing environments, environment may be empty
+	// We'll pass empty string if not set
 
 	creds, err := LoadCredentials()
 	if err != nil {
@@ -37,7 +36,9 @@ func AuthenticatedClient(c config.Config) (*http.Client, error) {
 	}
 
 	var exp float64
-	exp, _ = (*creds.Claims)["exp"].(float64)
+	if creds.Claims != nil {
+		exp, _ = (*creds.Claims)["exp"].(float64)
+	}
 
 	expTime := time.Unix(int64(exp), 0)
 	if exp > 0 {

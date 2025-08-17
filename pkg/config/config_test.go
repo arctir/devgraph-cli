@@ -124,3 +124,46 @@ func TestSaveConfig_CreateDirectory(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, config, loadedConfig)
 }
+
+func TestUserConfig(t *testing.T) {
+	// Test ApplyUserSettings
+	config := &Config{
+		Environment: "",
+		Model:       "gpt-4o-mini",
+		MaxTokens:   1000,
+	}
+
+	userSettings := &UserSettings{
+		DefaultEnvironment: "production",
+		DefaultModel:       "gpt-4",
+		DefaultMaxTokens:   2000,
+	}
+
+	config.ApplyUserSettings(userSettings)
+
+	assert.Equal(t, "production", config.Environment)
+	assert.Equal(t, "gpt-4", config.Model)
+	assert.Equal(t, 2000, config.MaxTokens)
+}
+
+func TestApplyUserSettings_NoOverrideIfSet(t *testing.T) {
+	// Test that user settings don't override explicit command line values
+	userSettings := &UserSettings{
+		DefaultEnvironment: "production",
+		DefaultModel:       "gpt-4",
+		DefaultMaxTokens:   2000,
+	}
+
+	config := &Config{
+		Environment: "development",   // Already set
+		Model:       "gpt-3.5-turbo", // Different from default
+		MaxTokens:   500,             // Different from default
+	}
+
+	config.ApplyUserSettings(userSettings)
+
+	// Should not override since values are not defaults
+	assert.Equal(t, "development", config.Environment)
+	assert.Equal(t, "gpt-3.5-turbo", config.Model)
+	assert.Equal(t, 500, config.MaxTokens)
+}

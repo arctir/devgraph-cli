@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/alecthomas/kong v1.9.0
-	github.com/arctir/go-devgraph v0.0.0-20250814143204-62fe9264cd63
+	github.com/arctir/go-devgraph v0.0.0-20250817053221-f0d2e09af603
 	github.com/coreos/go-oidc/v3 v3.13.0
 	github.com/fatih/color v1.18.0
 	github.com/golang-jwt/jwt/v5 v5.2.2

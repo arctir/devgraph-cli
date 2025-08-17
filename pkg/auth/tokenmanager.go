@@ -78,23 +78,29 @@ func (m *OIDCTokenManager) Token() (*oauth2.Token, error) {
 			fmt.Printf("Failed to load existing credentials: %v\n", err)
 			panic(err)
 		}
+
+		// Update all token information
+		creds.AccessToken = newToken.AccessToken
 		creds.RefreshToken = newToken.RefreshToken
+
+		// Extract and save ID token if present
+		if rawIDToken, ok := newToken.Extra("id_token").(string); ok && rawIDToken != "" {
+			creds.IDToken = rawIDToken
+
+			// Optionally verify the ID token
+			if m.oidcVerifier != nil {
+				if _, err := m.oidcVerifier.Verify(context.Background(), rawIDToken); err != nil {
+					fmt.Printf("ID token verification failed: %v\n", err)
+				}
+			}
+		}
+
 		err = SaveCredentials(*creds)
 		if err != nil {
 			fmt.Printf("Failed to save refreshed token: %v\n", err)
 			panic(err)
 		}
 		m.token = newToken
-
-		// Optionally verify the ID token if present
-		if m.oidcVerifier != nil {
-			rawIDToken, ok := newToken.Extra("id_token").(string)
-			if ok && rawIDToken != "" {
-				if _, err := m.oidcVerifier.Verify(context.Background(), rawIDToken); err != nil {
-					fmt.Printf("ID token verification failed: %v\n", err)
-				}
-			}
-		}
 	}
 	return m.token, nil
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/arctir/devgraph-cli/pkg/auth"
 	"github.com/arctir/devgraph-cli/pkg/config"
@@ -21,24 +22,27 @@ func (s *SetupCommand) Run() error {
 	fmt.Println("Let's configure your development environment.")
 	fmt.Println()
 
-	// Check if already authenticated
-	_, err := auth.LoadCredentials()
-	if err != nil {
-		fmt.Println("🔐 First, you need to authenticate with Devgraph.")
-		fmt.Println("Running authentication...")
-
-		authCmd := &Auth{Config: s.Config}
-		err = authCmd.Run()
-		if err != nil {
-			return fmt.Errorf("authentication failed: %w", err)
-		}
-
-		fmt.Println("✅ Authentication successful!")
-		fmt.Print()
-	} else {
-		fmt.Println("✅ Already authenticated with Devgraph.")
-		fmt.Println()
+	// Check if already authenticated - require it before setup
+	creds, err := auth.LoadCredentials()
+	if err != nil || creds.IDToken == "" || creds.AccessToken == "" {
+		fmt.Println("❌ You must be authenticated to run setup.")
+		fmt.Println("Please run 'devgraph auth login' first to authenticate.")
+		return fmt.Errorf("authentication required")
 	}
+
+	// Check if tokens are expired
+	if creds.Claims != nil {
+		if exp, ok := (*creds.Claims)["exp"].(float64); ok {
+			if time.Now().Unix() > int64(exp) {
+				fmt.Println("❌ Your authentication token has expired.")
+				fmt.Println("Please run 'devgraph auth login' to re-authenticate.")
+				return fmt.Errorf("authentication token expired")
+			}
+		}
+	}
+
+	fmt.Println("✅ Authenticated with Devgraph.")
+	fmt.Println()
 
 	// Load or create user config
 	userConfig, err := config.LoadUserConfig()
@@ -219,18 +223,20 @@ func RunConfigurationWizard() error {
 
 	fmt.Println("🆕 First time using Devgraph CLI!")
 
+	if !hasCredentials {
+		fmt.Println("To get started:")
+		fmt.Println("1. First authenticate: devgraph auth login")
+		fmt.Println("2. Then run setup: devgraph setup")
+		return nil
+	}
+
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Would you like to run the configuration wizard? (Y/n): ")
 	input, _ := reader.ReadString('\n')
 	input = strings.TrimSpace(strings.ToLower(input))
 
 	if input == "n" || input == "no" {
-		if !hasCredentials {
-			fmt.Println("⚠️  You'll need to authenticate before using most commands.")
-			fmt.Println("Run 'devgraph auth' to authenticate, or 'devgraph setup' to run the full wizard.")
-		} else {
-			fmt.Println("Skipping configuration wizard. You can run it later with: devgraph setup")
-		}
+		fmt.Println("Skipping configuration wizard. You can run it later with: devgraph setup")
 		return nil
 	}
 

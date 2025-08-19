@@ -118,12 +118,12 @@ func (e *EnvironmentUserListCommand) Run() error {
 		return err
 	}
 
-	if e.Config.Environment == "" {
+	if e.Environment == "" {
 		return fmt.Errorf("no environment configured. Use 'devgraph env switch' to set an environment")
 	}
 
 	ctx := context.TODO()
-	resp, err := client.ListEnvironmentUsersWithResponse(ctx, e.Config.Environment)
+	resp, err := client.ListEnvironmentUsersWithResponse(ctx, e.Environment)
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ func (e *EnvironmentUserAddCommand) Run() error {
 		return err
 	}
 
-	if e.Config.Environment == "" {
+	if e.Environment == "" {
 		return fmt.Errorf("no environment configured. Use 'devgraph env switch' to set an environment")
 	}
 
@@ -158,7 +158,7 @@ func (e *EnvironmentUserAddCommand) Run() error {
 		Role:         &e.Role,
 	}
 
-	resp, err := client.InviteEnvironmentUserWithResponse(ctx, e.Config.Environment, invite)
+	resp, err := client.InviteEnvironmentUserWithResponse(ctx, e.Environment, invite)
 	if err != nil {
 		return err
 	}
@@ -177,12 +177,12 @@ func (e *EnvironmentUserRemoveCommand) Run() error {
 		return err
 	}
 
-	if e.Config.Environment == "" {
+	if e.Environment == "" {
 		return fmt.Errorf("no environment configured. Use 'devgraph env switch' to set an environment")
 	}
 
 	ctx := context.TODO()
-	resp, err := client.DeleteEnvironmentUserWithResponse(ctx, e.Config.Environment, e.UserID)
+	resp, err := client.DeleteEnvironmentUserWithResponse(ctx, e.Environment, e.UserID)
 	if err != nil {
 		return err
 	}

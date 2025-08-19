@@ -64,7 +64,7 @@ func UpdateClerkSessionForEnvironment(config config.Config, environmentID string
 	// by your API layer through the Devgraph-Environment header
 	// In the future, if you need to update the Clerk session's active organization,
 	// you would implement the Clerk API calls here
-	
+
 	fmt.Printf("Debug: Would update Clerk session for environment %s\n", environmentID)
 	return nil
 }
@@ -136,13 +136,13 @@ func getEndSessionEndpoint(wellKnown *WellKnownConfig) string {
 // callEndSessionEndpoint calls the OIDC end session endpoint
 func callEndSessionEndpoint(endSessionURL, idToken, redirectURL string) error {
 	client := &http.Client{}
-	
+
 	// Build logout URL with parameters
 	u, err := url.Parse(endSessionURL)
 	if err != nil {
 		return err
 	}
-	
+
 	q := u.Query()
 	q.Set("id_token_hint", idToken)
 	if redirectURL != "" {
@@ -159,7 +159,7 @@ func callEndSessionEndpoint(endSessionURL, idToken, redirectURL string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("logout request failed with status: %d", resp.StatusCode)
@@ -205,7 +205,7 @@ func GetCurrentUser() (*UserInfo, error) {
 	if picture, ok := claims["picture"].(string); ok {
 		userInfo.Picture = picture
 	}
-	
+
 	// Extract Clerk-specific organization information
 	if orgData, ok := claims["org_metadata"]; ok {
 		userInfo.OrganizationMetadata = orgData

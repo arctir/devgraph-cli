@@ -23,7 +23,7 @@ type AuthWhoamiCommand struct {
 
 type AuthCommand struct {
 	Login  *AuthLoginCommand  `cmd:"login" help:"Authenticate with your Devgraph account"`
-	Logout *AuthLogoutCommand `cmd:"logout" help:"Log out and clear authentication credentials"`  
+	Logout *AuthLogoutCommand `cmd:"logout" help:"Log out and clear authentication credentials"`
 	Whoami *AuthWhoamiCommand `cmd:"whoami" help:"Show information about the currently authenticated user"`
 }
 
@@ -88,7 +88,7 @@ func (a *Auth) Run() error {
 			fmt.Printf("Warning: Failed to save environment selection: %v\n", err)
 			return nil
 		}
-		
+
 		userConfig.Settings.DefaultEnvironment = tempConfig.Environment
 		err = config.SaveUserConfig(userConfig)
 		if err != nil {
@@ -121,25 +121,25 @@ func (a *AuthWhoamiCommand) Run() error {
 	// Display user information
 	fmt.Println("Current User Information:")
 	fmt.Println("========================")
-	
+
 	if userInfo.Name != "" {
 		fmt.Printf("Name: %s\n", userInfo.Name)
 	} else if userInfo.GivenName != "" || userInfo.FamilyName != "" {
 		fmt.Printf("Name: %s %s\n", userInfo.GivenName, userInfo.FamilyName)
 	}
-	
+
 	if userInfo.Email != "" {
 		fmt.Printf("Email: %s\n", userInfo.Email)
 	}
-	
+
 	if userInfo.Subject != "" {
 		fmt.Printf("User ID: %s\n", userInfo.Subject)
 	}
-	
+
 	if userInfo.OrganizationID != "" {
 		fmt.Printf("Organization ID: %s\n", userInfo.OrganizationID)
 	}
-	
+
 	if userInfo.OrganizationSlug != "" {
 		fmt.Printf("Organization Slug: %s\n", userInfo.OrganizationSlug)
 	}

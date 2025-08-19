@@ -57,6 +57,182 @@ func getWellKnownEndpoints(issuerURL string) (*WellKnownConfig, error) {
 	return &config, nil
 }
 
+// UpdateClerkSessionForEnvironment updates the Clerk session for a specific environment
+// This is a placeholder for Clerk-specific organization switching logic
+func UpdateClerkSessionForEnvironment(config config.Config, environmentID string) error {
+	// For now, this is a no-op since the environment switching is handled
+	// by your API layer through the Devgraph-Environment header
+	// In the future, if you need to update the Clerk session's active organization,
+	// you would implement the Clerk API calls here
+	
+	fmt.Printf("Debug: Would update Clerk session for environment %s\n", environmentID)
+	return nil
+}
+
+// Logout performs OIDC logout by calling the end session endpoint and clearing local credentials
+func Logout(config config.Config) error {
+	// Load current credentials
+	creds, err := LoadCredentials()
+	if err != nil || creds.IDToken == "" {
+		// If no credentials, just clear any local state
+		fmt.Println("No active session found.")
+		return ClearCredentials()
+	}
+
+	// Get OIDC well-known configuration
+	wellKnown, err := getWellKnownEndpoints(config.IssuerURL)
+	if err != nil {
+		fmt.Printf("Warning: Could not retrieve logout endpoint: %v\n", err)
+		fmt.Println("Clearing local credentials...")
+		return ClearCredentials()
+	}
+
+	// Try to call the OIDC end session endpoint if available
+	if endSessionURL := getEndSessionEndpoint(wellKnown); endSessionURL != "" {
+		err := callEndSessionEndpoint(endSessionURL, creds.IDToken, config.RedirectURL)
+		if err != nil {
+			fmt.Printf("Warning: OIDC logout failed: %v\n", err)
+			fmt.Println("Clearing local credentials anyway...")
+		} else {
+			fmt.Println("Successfully logged out of OIDC provider.")
+		}
+	} else {
+		fmt.Println("No OIDC logout endpoint found. Clearing local credentials...")
+	}
+
+	// Clear local credentials
+	return ClearCredentials()
+}
+
+// ClearCredentials removes all stored authentication credentials
+func ClearCredentials() error {
+	userConfig, err := config.LoadUserConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load user config: %v", err)
+	}
+
+	// Clear credentials
+	userConfig.Credentials = config.Credentials{}
+
+	err = config.SaveUserConfig(userConfig)
+	if err != nil {
+		return fmt.Errorf("failed to save cleared credentials: %v", err)
+	}
+
+	fmt.Println("Local credentials cleared.")
+	return nil
+}
+
+// getEndSessionEndpoint extracts the end session endpoint from well-known config
+func getEndSessionEndpoint(wellKnown *WellKnownConfig) string {
+	// This would need to be added to WellKnownConfig struct
+	// For now, construct the standard Clerk logout URL
+	if wellKnown.Issuer != "" {
+		return wellKnown.Issuer + "/v1/client/sign_outs"
+	}
+	return ""
+}
+
+// callEndSessionEndpoint calls the OIDC end session endpoint
+func callEndSessionEndpoint(endSessionURL, idToken, redirectURL string) error {
+	client := &http.Client{}
+	
+	// Build logout URL with parameters
+	u, err := url.Parse(endSessionURL)
+	if err != nil {
+		return err
+	}
+	
+	q := u.Query()
+	q.Set("id_token_hint", idToken)
+	if redirectURL != "" {
+		q.Set("post_logout_redirect_uri", redirectURL)
+	}
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequest("POST", u.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("logout request failed with status: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// GetCurrentUser returns information about the currently authenticated user
+func GetCurrentUser() (*UserInfo, error) {
+	creds, err := LoadCredentials()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load credentials: %v", err)
+	}
+
+	if creds.IDToken == "" {
+		return nil, fmt.Errorf("no active session found")
+	}
+
+	if creds.Claims == nil {
+		return nil, fmt.Errorf("no user claims available")
+	}
+
+	claims := *creds.Claims
+	userInfo := &UserInfo{}
+
+	// Extract standard OIDC claims
+	if sub, ok := claims["sub"].(string); ok {
+		userInfo.Subject = sub
+	}
+	if email, ok := claims["email"].(string); ok {
+		userInfo.Email = email
+	}
+	if name, ok := claims["name"].(string); ok {
+		userInfo.Name = name
+	}
+	if givenName, ok := claims["given_name"].(string); ok {
+		userInfo.GivenName = givenName
+	}
+	if familyName, ok := claims["family_name"].(string); ok {
+		userInfo.FamilyName = familyName
+	}
+	if picture, ok := claims["picture"].(string); ok {
+		userInfo.Picture = picture
+	}
+	
+	// Extract Clerk-specific organization information
+	if orgData, ok := claims["org_metadata"]; ok {
+		userInfo.OrganizationMetadata = orgData
+	}
+	if orgId, ok := claims["org_id"].(string); ok {
+		userInfo.OrganizationID = orgId
+	}
+	if orgSlug, ok := claims["org_slug"].(string); ok {
+		userInfo.OrganizationSlug = orgSlug
+	}
+
+	return userInfo, nil
+}
+
+// UserInfo represents user information extracted from OIDC claims
+type UserInfo struct {
+	Subject              string      `json:"subject"`
+	Email                string      `json:"email"`
+	Name                 string      `json:"name"`
+	GivenName            string      `json:"given_name"`
+	FamilyName           string      `json:"family_name"`
+	Picture              string      `json:"picture"`
+	OrganizationID       string      `json:"org_id"`
+	OrganizationSlug     string      `json:"org_slug"`
+	OrganizationMetadata interface{} `json:"org_metadata"`
+}
+
 func Authenticate(a config.Config) (*oauth2.Token, error) {
 	ctx := context.Background()
 	ready := make(chan string, 1)

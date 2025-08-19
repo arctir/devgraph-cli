@@ -3,9 +3,11 @@ package commands
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/arctir/devgraph-cli/pkg/util"
 	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
+	"k8s.io/utils/ptr"
 )
 
 type MCPCommand struct {
@@ -17,9 +19,10 @@ type MCPCommand struct {
 
 type MCPCreateCommand struct {
 	EnvWrapperCommand
-	Name        string `arg:"" required:"" help:"Name of the MCP resource to create."`
-	Url         string `arg:"" required:"" help:"URL of the MCP resource to create."`
-	Description string `arg:"" optional:"" help:"Description of the MCP resource."`
+	Name        string   `arg:"" required:"" help:"Name of the MCP resource to create."`
+	Url         string   `arg:"" required:"" help:"URL of the MCP resource to create."`
+	Description string   `arg:"" optional:"" help:"Description of the MCP resource."`
+	Headers     []string `flag:"header,H" help:"Headers as key:value pairs (can be specified multiple times)."`
 }
 
 type MCPListCommand struct {
@@ -42,10 +45,26 @@ func (e *MCPCreateCommand) Run() error {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
 
+	// Parse headers from key:value format
+	headers := make(map[string]string)
+	for _, header := range e.Headers {
+		parts := strings.SplitN(header, ":", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid header format '%s', expected 'key:value'", header)
+		}
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		if key == "" {
+			return fmt.Errorf("header key cannot be empty in '%s'", header)
+		}
+		headers[key] = value
+	}
+
 	request := devgraphv1.CreateMcpendpointJSONRequestBody{
 		Name:        e.Name,
 		Url:         e.Url,
 		Description: &e.Description,
+		Headers:     ptr.To(headers),
 	}
 
 	resp, err := client.CreateMcpendpointWithResponse(context.Background(), request)

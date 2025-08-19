@@ -11,7 +11,7 @@ import (
 
 type CLI struct {
 	Chat             commands.Chat                    `kong:"cmd,help='Start an interactive chat with AI'"`
-	Auth             commands.Auth                    `kong:"cmd,help='Authenticate your Devgraph client'"`
+	Auth             commands.AuthCommand             `kong:"cmd,help='Manage authentication with your Devgraph account'"`
 	Setup            commands.SetupCommand            `kong:"cmd,help='Run interactive configuration wizard'"`
 	Config           commands.ConfigCommand           `kong:"cmd,help='Manage configuration settings'"`
 	Token            commands.TokenCommand            `kong:"cmd,help='Manage opaque tokens for Devgraph'"`

@@ -32,7 +32,7 @@ func AuthenticatedClient(c config.Config) (*http.Client, error) {
 			AuthURL:  endpoints.AuthorizationEndpoint,
 			TokenURL: endpoints.TokenEndpoint,
 		},
-		Scopes: []string{"openid", "profile", "email"},
+		Scopes: []string{"openid", "profile", "email", "public_metadata", "org:read"},
 	}
 
 	var exp float64

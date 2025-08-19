@@ -40,7 +40,15 @@ func GetEnvironments(config config.Config) (*[]devgraphv1.EnvironmentResponse, e
 
 func CheckEnvironment(config *config.Config) (bool, error) {
 	if config.Environment != "" {
-		return true, nil
+		// Validate that the environment exists on the current API server
+		err := ValidateEnvironment(*config, config.Environment)
+		if err != nil {
+			fmt.Printf("Warning: Current environment '%s' is not valid for this API server. Clearing environment setting.\n", config.Environment)
+			config.Environment = ""
+			// Fall through to environment selection logic below
+		} else {
+			return true, nil
+		}
 	}
 
 	if config.Environment == "" {

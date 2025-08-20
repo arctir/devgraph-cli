@@ -29,7 +29,7 @@ type Config struct {
 	Environment string `kong:"env='DEVGRAPH_ENVIRONMENT',help='Environment (development, staging, production)'"`
 
 	// Chat configuration
-	Model     string `kong:"default='gpt-4o-mini',short='m',help='Chat model to use'"`
+	Model     string `kong:"short='m',help='Chat model to use'"`
 	MaxTokens int    `kong:"default=1000,short='t',help='Maximum number of tokens in response'"`
 }
 
@@ -198,7 +198,7 @@ func (c *Config) ApplyUserSettings(settings *UserSettings) {
 	if settings.DefaultEnvironment != "" && c.Environment == "" {
 		c.Environment = settings.DefaultEnvironment
 	}
-	if settings.DefaultModel != "" && c.Model == "gpt-4o-mini" {
+	if settings.DefaultModel != "" && c.Model == "" {
 		c.Model = settings.DefaultModel
 	}
 	if settings.DefaultMaxTokens > 0 && c.MaxTokens == 1000 {

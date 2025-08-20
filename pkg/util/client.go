@@ -2,6 +2,7 @@ package util
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/arctir/devgraph-cli/pkg/auth"
 	"github.com/arctir/devgraph-cli/pkg/config"
@@ -26,4 +27,24 @@ func GetAuthenticatedClient(config config.Config) (*devgraphv1.ClientWithRespons
 	}
 
 	return devgraphv1.NewClientWithResponses(config.ApiURL, devgraphv1.WithHTTPClient(httpClient))
+}
+
+// IsAuthenticated checks if the user has valid authentication credentials.
+// It returns true if valid, unexpired credentials are available, false otherwise.
+func IsAuthenticated() bool {
+	creds, err := auth.LoadCredentials()
+	if err != nil || creds.IDToken == "" || creds.AccessToken == "" {
+		return false
+	}
+
+	// Check if tokens are expired
+	if creds.Claims != nil {
+		if exp, ok := (*creds.Claims)["exp"].(float64); ok {
+			if time.Now().Unix() > int64(exp) {
+				return false
+			}
+		}
+	}
+
+	return true
 }

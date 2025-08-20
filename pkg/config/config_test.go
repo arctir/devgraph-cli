@@ -129,7 +129,7 @@ func TestUserConfig(t *testing.T) {
 	// Test ApplyUserSettings
 	config := &Config{
 		Environment: "",
-		Model:       "gpt-4o-mini",
+		Model:       "",
 		MaxTokens:   1000,
 	}
 

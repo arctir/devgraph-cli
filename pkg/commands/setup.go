@@ -22,27 +22,39 @@ func (s *SetupCommand) Run() error {
 	fmt.Println("Let's configure your development environment.")
 	fmt.Println()
 
-	// Check if already authenticated - require it before setup
+	// Check authentication status
 	creds, err := auth.LoadCredentials()
-	if err != nil || creds.IDToken == "" || creds.AccessToken == "" {
-		fmt.Println("❌ You must be authenticated to run setup.")
-		fmt.Println("Please run 'devgraph auth login' first to authenticate.")
-		return fmt.Errorf("authentication required")
-	}
-
+	hasValidAuth := err == nil && creds.IDToken != "" && creds.AccessToken != ""
+	
 	// Check if tokens are expired
-	if creds.Claims != nil {
+	if hasValidAuth && creds.Claims != nil {
 		if exp, ok := (*creds.Claims)["exp"].(float64); ok {
 			if time.Now().Unix() > int64(exp) {
-				fmt.Println("❌ Your authentication token has expired.")
-				fmt.Println("Please run 'devgraph auth login' to re-authenticate.")
-				return fmt.Errorf("authentication token expired")
+				hasValidAuth = false
 			}
 		}
 	}
 
-	fmt.Println("✅ Authenticated with Devgraph.")
-	fmt.Println()
+	if !hasValidAuth {
+		fmt.Println("⚠️  Authentication required for full setup.")
+		fmt.Println("Run 'devgraph auth login' first, then run setup again.")
+		fmt.Println()
+		fmt.Println("You can still configure basic settings now if you'd like.")
+		
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("Continue with basic setup? (y/N): ")
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(strings.ToLower(input))
+		
+		if input != "y" && input != "yes" {
+			fmt.Println("Setup cancelled. Run 'devgraph auth login' first.")
+			return nil
+		}
+		fmt.Println()
+	} else {
+		fmt.Println("✅ Authenticated with Devgraph.")
+		fmt.Println()
+	}
 
 	// Load or create user config
 	userConfig, err := config.LoadUserConfig()
@@ -50,19 +62,29 @@ func (s *SetupCommand) Run() error {
 		userConfig = &config.UserConfig{}
 	}
 
-	// Configure environment
-	err = s.configureEnvironment(userConfig)
-	if err != nil {
-		return err
+	// Configure environment (only if authenticated)
+	if hasValidAuth {
+		err = s.configureEnvironment(userConfig)
+		if err != nil {
+			fmt.Printf("⚠️  Could not configure environment: %v\n", err)
+		}
+	} else {
+		fmt.Println("⏭️  Skipping environment configuration (authentication required)")
 	}
 
-	// Configure model
-	err = s.configureModel(userConfig)
-	if err != nil {
-		return err
+	// Configure model (only if authenticated and environment is set)
+	if hasValidAuth && userConfig.Settings.DefaultEnvironment != "" {
+		err = s.configureModel(userConfig)
+		if err != nil {
+			fmt.Printf("⚠️  Could not configure model: %v\n", err)
+		}
+	} else if !hasValidAuth {
+		fmt.Println("⏭️  Skipping model configuration (authentication required)")
+	} else {
+		fmt.Println("⏭️  Skipping model configuration (environment not set)")
 	}
 
-	// Configure max tokens
+	// Configure max tokens (always available)
 	err = s.configureMaxTokens(userConfig)
 	if err != nil {
 		return err
@@ -136,16 +158,11 @@ func (s *SetupCommand) configureModel(userConfig *config.UserConfig) error {
 	// Get available models
 	models, err := util.GetModels(s.Config)
 	if err != nil {
-		fmt.Printf("⚠️  Could not fetch available models: %v\n", err)
-		fmt.Println("Using default model: gpt-4o-mini")
-		userConfig.Settings.DefaultModel = "gpt-4o-mini"
-		return nil
+		return fmt.Errorf("could not fetch available models: %w", err)
 	}
 
 	if models == nil || len(*models) == 0 {
-		fmt.Println("⚠️  No models found. Using default: gpt-4o-mini")
-		userConfig.Settings.DefaultModel = "gpt-4o-mini"
-		return nil
+		return fmt.Errorf("no models are available from the API. Please contact your administrator")
 	}
 
 	if len(*models) == 1 {
@@ -210,44 +227,9 @@ func (s *SetupCommand) configureMaxTokens(userConfig *config.UserConfig) error {
 	return nil
 }
 
-// RunConfigurationWizard runs the setup wizard if this is a first-time setup
+// RunConfigurationWizard is deprecated - setup logic moved to main.go
+// This function is kept for backwards compatibility but does nothing
 func RunConfigurationWizard() error {
-	// Check if credentials exist - if not, this is definitely first time
-	_, credErr := auth.LoadCredentials()
-	hasCredentials := credErr == nil
-
-	// If credentials exist, check other first-time indicators
-	if hasCredentials && !config.IsFirstTimeSetup() {
-		return nil // Not first time, skip
-	}
-
-	fmt.Println("🆕 First time using Devgraph CLI!")
-
-	if !hasCredentials {
-		fmt.Println("To get started:")
-		fmt.Println("1. First authenticate: devgraph auth login")
-		fmt.Println("2. Then run setup: devgraph setup")
-		return nil
-	}
-
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Would you like to run the configuration wizard? (Y/n): ")
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(strings.ToLower(input))
-
-	if input == "n" || input == "no" {
-		fmt.Println("Skipping configuration wizard. You can run it later with: devgraph setup")
-		return nil
-	}
-
-	setupCmd := &SetupCommand{
-		Config: config.Config{
-			ApiURL:      "https://api.staging.devgraph.ai",
-			IssuerURL:   config.DefaultIssuerURL,
-			ClientID:    config.DefaultClientID,
-			RedirectURL: config.DefaultRedirectURL,
-		},
-	}
-
-	return setupCmd.Run()
+	// No longer needed - first time setup is handled in main.go
+	return nil
 }

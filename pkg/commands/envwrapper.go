@@ -16,6 +16,12 @@ func (e *EnvWrapperCommand) BeforeApply() error {
 		e.ApplyUserSettings(&userConfig.Settings)
 	}
 
+	// Skip environment check if not authenticated
+	// This allows commands to proceed and let main.go handle first-time setup
+	if !util.IsAuthenticated() {
+		return nil
+	}
+
 	ok, err := util.CheckEnvironment(&e.Config)
 	if !ok {
 		return err

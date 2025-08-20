@@ -6,9 +6,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/alecthomas/kong"
 	"github.com/arctir/devgraph-cli/pkg/commands"
+	"github.com/arctir/devgraph-cli/pkg/config"
+	"github.com/arctir/devgraph-cli/pkg/util"
 	admincommands "github.com/arctir/devgraph-cli/pkg/commands/admin"
 )
 
@@ -60,13 +63,12 @@ func main() {
 		}),
 	)
 
-	// Check if this is first-time setup and run wizard if needed
-	// Skip wizard for help commands and setup command itself
-	if ctx.Command() != "help" && ctx.Command() != "setup" && ctx.Command() != "auth" {
-		err := commands.RunConfigurationWizard()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Configuration wizard error: %v\n", err)
-			os.Exit(1)
+	// Show first-time setup guidance for commands that need authentication
+	// Skip for help, setup, and auth commands since they don't require full config
+	if ctx.Command() != "help" && ctx.Command() != "setup" && !strings.HasPrefix(ctx.Command(), "auth") {
+		if shouldShowFirstTimeSetup() {
+			showFirstTimeSetupMessage()
+			return // Don't proceed with the command
 		}
 	}
 
@@ -76,5 +78,39 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
+}
 
+// shouldShowFirstTimeSetup determines if the user needs to complete initial setup
+func shouldShowFirstTimeSetup() bool {
+	// Check if user has valid credentials
+	if !util.IsAuthenticated() {
+		return true // Need to authenticate first
+	}
+
+	// Check if this is truly first time (no config exists)
+	return config.IsFirstTimeSetup()
+}
+
+// showFirstTimeSetupMessage displays helpful guidance for new users
+func showFirstTimeSetupMessage() {
+	fmt.Println("🆕 Welcome to Devgraph CLI!")
+	fmt.Println()
+
+	// Check if user has credentials
+	if !util.IsAuthenticated() {
+		fmt.Println("To get started, please authenticate:")
+		fmt.Println("  devgraph auth login")
+		fmt.Println()
+		fmt.Println("After authentication, you can:")
+		fmt.Println("  devgraph setup     # Configure your preferences")
+		fmt.Println("  devgraph chat      # Start chatting with AI")
+		fmt.Println("  devgraph --help    # See all available commands")
+	} else {
+		fmt.Println("You're authenticated! Complete the setup:")
+		fmt.Println("  devgraph setup     # Configure your preferences")
+		fmt.Println()
+		fmt.Println("Or start using Devgraph right away:")
+		fmt.Println("  devgraph chat      # Start chatting with AI")
+		fmt.Println("  devgraph --help    # See all available commands")
+	}
 }

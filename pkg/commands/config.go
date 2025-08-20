@@ -106,7 +106,7 @@ func (c *ConfigGetCommand) Run() error {
 		if userConfig.Settings.DefaultModel != "" {
 			fmt.Println(userConfig.Settings.DefaultModel)
 		} else {
-			fmt.Println("gpt-4o-mini (default)")
+			fmt.Println("(not configured)")
 		}
 	case "max_tokens":
 		if userConfig.Settings.DefaultMaxTokens > 0 {
@@ -149,7 +149,7 @@ func (c *ConfigShowCommand) Run() error {
 		}
 	}
 	fmt.Printf("  Environment: %s\n", envDisplay)
-	fmt.Printf("  Model: %s\n", getValueOrDefault(userConfig.Settings.DefaultModel, "gpt-4o-mini (default)"))
+	fmt.Printf("  Model: %s\n", getValueOrDefault(userConfig.Settings.DefaultModel, "(not configured)"))
 
 	var maxTokensStr string
 	if userConfig.Settings.DefaultMaxTokens > 0 {

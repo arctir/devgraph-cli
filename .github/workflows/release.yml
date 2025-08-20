@@ -6,13 +6,42 @@ env:
 
 on:
   push:
-    branches:
+    tags:
+      - "v*" # Trigger on version tags like v1.0.0
 
 permissions:
   contents: write # Required to upload assets to the release
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24" # Match your project's Go version
+          cache: true
+
+      - name: Configure Git for private modules
+        env:
+          GITHUB_TOKEN: ${{ secrets.ARCTIR_GH_ACTIONS_TOKEN }}
+        run: git config --global url."https://x-oauth-basic:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com"
+        
+      - name: Install dependencies
+        run: go mod download
+        env:
+          GOPRIVATE: github.com/arctir/*
+
+      - name: Run tests
+        run: make test
+
+      - name: Run linter
+        run: make lint
+
   goreleaser:
+    needs: test  # Only run if tests pass
     runs-on: ubuntu-latest
     steps:
       # Checkout the repository with full history
@@ -25,7 +54,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23" # Match your project's Go version
+          go-version: "1.24" # Match your project's Go version  
           cache: true # Cache Go modules for faster builds
 
       - name: Configure Git for private modules

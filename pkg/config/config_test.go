@@ -59,7 +59,7 @@ model: gpt-3.5-turbo`,
 			tmpDir := t.TempDir()
 			configFile := filepath.Join(tmpDir, "config.yaml")
 
-			err := os.WriteFile(configFile, []byte(tt.configContent), 0644)
+			err := os.WriteFile(configFile, []byte(tt.configContent), 0600)
 			require.NoError(t, err)
 
 			config, err := LoadConfig(configFile)

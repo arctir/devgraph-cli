@@ -1,3 +1,4 @@
+// Package commands provides command-line command implementations for Devgraph CLI.
 package commands
 
 import (
@@ -9,18 +10,22 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// AuthLoginCommand handles user authentication with Devgraph.
 type AuthLoginCommand struct {
 	config.Config
 }
 
+// AuthLogoutCommand handles user logout and credential cleanup.
 type AuthLogoutCommand struct {
 	config.Config
 }
 
+// AuthWhoamiCommand displays information about the currently authenticated user.
 type AuthWhoamiCommand struct {
 	config.Config
 }
 
+// AuthCommand is the parent command for all authentication-related subcommands.
 type AuthCommand struct {
 	Login  *AuthLoginCommand  `cmd:"login" help:"Authenticate with your Devgraph account"`
 	Logout *AuthLogoutCommand `cmd:"logout" help:"Log out and clear authentication credentials"`

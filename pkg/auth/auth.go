@@ -1,3 +1,6 @@
+// Package auth provides authentication functionality for Devgraph CLI.
+// It handles OIDC (OpenID Connect) authentication flow, token management,
+// and provides authenticated HTTP clients for API communication.
 package auth
 
 import (
@@ -11,6 +14,9 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// AuthenticatedClient creates an HTTP client configured with authentication
+// for making requests to Devgraph API. The client automatically handles
+// token refresh and includes required headers.
 func AuthenticatedClient(c config.Config) (*http.Client, error) {
 	environment := c.Environment
 	// Note: For some operations like listing environments, environment may be empty

@@ -1,14 +1,21 @@
+// Package util provides utility functions for the Devgraph CLI.
+// It includes functions for output formatting, table display, and common operations
+// used across multiple commands.
 package util
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 )
 
-// DisplayTable takes a slice of maps (data) and headers, and displays it as a formatted table
+// DisplayTable takes a slice of maps (data) and headers, and displays it as a formatted table.
+// Each map represents a row of data, with keys corresponding to column headers.
+// The function handles different data types (string, int, float64) and formats them appropriately.
+// Missing values are displayed as "-" in a dimmed color.
 func DisplayTable(data []map[string]interface{}, headers []string) {
 	// Add some visual spacing before the table
 	fmt.Println()
@@ -45,20 +52,27 @@ func DisplayTable(data []map[string]interface{}, headers []string) {
 			}
 			rowData = append(rowData, value)
 		}
-		table.Append(rowData) //nolint:errcheck
+		if err := table.Append(rowData); err != nil {
+			log.Printf("Warning: Failed to append table row: %v", err)
+		}
 	}
 
 	// The tablewriter package has limited customization options available
 	// Focus on content improvements instead of styling
 
 	// Render the table
-	table.Render() //nolint:errcheck
+	if err := table.Render(); err != nil {
+		log.Printf("Warning: Failed to render table: %v", err)
+	}
 
 	// Add some spacing after the table
 	fmt.Println()
 }
 
-// truncateString truncates a string to a maximum length with ellipsis
+// truncateString truncates a string to a maximum length with ellipsis.
+// If the string is shorter than or equal to maxLen, it returns the original string.
+// If maxLen is 3 or less, it returns the string truncated without ellipsis.
+// Otherwise, it truncates the string and appends "..." to indicate truncation.
 func truncateString(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s

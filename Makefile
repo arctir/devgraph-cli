@@ -19,6 +19,9 @@ help:
 	@echo "  clean        - Clean build artifacts"
 	@echo "  lint         - Run linter (requires golangci-lint)"
 	@echo "  fmt          - Format code"
+	@echo "  security     - Run security scans"
+	@echo "  vuln-check   - Check for vulnerabilities"
+	@echo "  deps-check   - Check for outdated dependencies"
 
 # Run tests
 test:
@@ -49,3 +52,18 @@ lint:
 deps:
 	go mod tidy
 	go mod download
+
+# Security scanning targets
+security: vuln-check
+	@echo "Running security scans..."
+
+# Check for known vulnerabilities
+vuln-check:
+	@echo "Checking for vulnerabilities..."
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	govulncheck ./...
+
+# Check for outdated dependencies
+deps-check:
+	@echo "Checking for outdated dependencies..."
+	go list -u -m all

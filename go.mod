@@ -2,6 +2,8 @@ module github.com/arctir/devgraph-cli
 
 go 1.24.0
 
+toolchain go1.24.6
+
 require (
 	github.com/alecthomas/kong v1.9.0
 	github.com/arctir/go-devgraph v0.0.0-20250819033500-47f9e3330acb

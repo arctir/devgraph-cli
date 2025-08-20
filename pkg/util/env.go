@@ -12,13 +12,19 @@ import (
 	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
 )
 
+// NoEnvironmentError is returned when a user is not associated with any environments
+// in their Devgraph account. This typically happens for new users or users who
+// haven't been granted access to any environments.
 type NoEnvironmentError struct {
 }
 
+// Error returns the error message for NoEnvironmentError.
 func (e *NoEnvironmentError) Error() string {
 	return "User is not associated with any environments"
 }
 
+// GetEnvironments retrieves all environments accessible to the authenticated user.
+// It returns a slice of EnvironmentResponse objects or an error if the request fails.
 func GetEnvironments(config config.Config) (*[]devgraphv1.EnvironmentResponse, error) {
 	client, err := GetAuthenticatedClient(config)
 	if err != nil {
@@ -38,6 +44,10 @@ func GetEnvironments(config config.Config) (*[]devgraphv1.EnvironmentResponse, e
 	return resp.JSON200, nil
 }
 
+// CheckEnvironment validates and ensures an environment is set in the config.
+// If no environment is set, it prompts the user to select from available environments.
+// Returns true if an environment was successfully set or validated, false otherwise.
+// This function may prompt the user for input if multiple environments are available.
 func CheckEnvironment(config *config.Config) (bool, error) {
 	if config.Environment != "" {
 		// Validate that the environment exists on the current API server
@@ -93,12 +103,19 @@ func CheckEnvironment(config *config.Config) (bool, error) {
 }
 
 // ValidateEnvironment checks if the given environment ID exists and is accessible
+// to the authenticated user. Returns nil if the environment is valid, or an error
+// describing why the environment cannot be accessed.
 func ValidateEnvironment(config config.Config, environmentID string) error {
 	_, err := ResolveEnvironmentUUID(config, environmentID)
 	return err
 }
 
-// ResolveEnvironmentUUID resolves an environment name, slug, or UUID to its UUID
+// ResolveEnvironmentUUID resolves an environment name, slug, or UUID to its UUID.
+// The environmentIdentifier can be any of:
+//   - Environment UUID (exact match)
+//   - Environment slug (exact match)  
+//   - Environment name (exact match)
+// Returns the UUID of the matching environment, or an error if no match is found.
 func ResolveEnvironmentUUID(config config.Config, environmentIdentifier string) (string, error) {
 	envs, err := GetEnvironments(config)
 	if err != nil {
@@ -118,7 +135,8 @@ func ResolveEnvironmentUUID(config config.Config, environmentIdentifier string) 
 	return "", fmt.Errorf("environment '%s' not found. Available environments: %v", environmentIdentifier, getEnvironmentList(*envs))
 }
 
-// getEnvironmentList returns a list of environment names/slugs for error messages
+// getEnvironmentList returns a list of environment names/slugs for error messages.
+// It formats each environment as "Name (slug)" for user-friendly error reporting.
 func getEnvironmentList(envs []devgraphv1.EnvironmentResponse) []string {
 	var names []string
 	for _, env := range envs {

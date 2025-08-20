@@ -11,12 +11,18 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// DevgraphTransport is a custom HTTP transport that adds Devgraph-specific headers
+// to all outgoing requests. It wraps the standard HTTP transport and injects
+// required headers like Content-Type, Accept, Authorization, and Devgraph-Environment.
 type DevgraphTransport struct {
+	// Transport is the underlying HTTP transport to use (defaults to http.DefaultTransport if nil)
 	Transport http.RoundTripper
+	// Headers contains additional headers to add to every request
 	Headers   map[string]string
 }
 
-// RoundTrip implements the http.RoundTripper interface
+// RoundTrip implements the http.RoundTripper interface.
+// It adds the configured headers to the request before forwarding to the underlying transport.
 func (t *DevgraphTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Clone the request to avoid modifying the original
 	newReq := req.Clone(req.Context())
@@ -35,17 +41,21 @@ func (t *DevgraphTransport) RoundTrip(req *http.Request) (*http.Response, error)
 	return transport.RoundTrip(newReq)
 }
 
-// OIDCTokenManager manages OIDC tokens and provides a refreshing TokenSource
+// OIDCTokenManager manages OIDC tokens and provides automatic token refresh capabilities.
+// It implements oauth2.TokenSource and handles the complexity of refreshing expired tokens,
+// saving updated tokens to persistent storage, and providing authenticated HTTP clients.
 type OIDCTokenManager struct {
-	config              oauth2.Config
-	mu                  sync.Mutex
-	token               *oauth2.Token // Current token (access, refresh, ID token)
-	tokenSrc            oauth2.TokenSource
+	config              oauth2.Config        // OAuth2 configuration
+	mu                  sync.Mutex           // Mutex for thread-safe token operations
+	token               *oauth2.Token        // Current token (access, refresh, ID token)
+	tokenSrc            oauth2.TokenSource   // Underlying token source for refresh
 	oidcVerifier        *oidc.IDTokenVerifier // Optional: for ID token verification
-	devgraphEnvironment string
+	devgraphEnvironment string               // Devgraph environment ID for API calls
 }
 
-// NewOIDCTokenManager creates a new token manager with initial token
+// NewOIDCTokenManager creates a new token manager with the provided initial token.
+// It sets up automatic token refresh and optionally configures ID token verification
+// if an OIDC provider is provided.
 func NewOIDCTokenManager(config oauth2.Config, initialToken *oauth2.Token, provider *oidc.Provider, devgraphEnvironment string) *OIDCTokenManager {
 	ctx := context.Background()
 	mgr := &OIDCTokenManager{

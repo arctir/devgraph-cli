@@ -73,14 +73,15 @@ func (s *SetupCommand) Run() error {
 	}
 
 	// Configure model (only if authenticated and environment is set)
-	if hasValidAuth && userConfig.Settings.DefaultEnvironment != "" {
+	switch {
+	case hasValidAuth && userConfig.Settings.DefaultEnvironment != "":
 		err = s.configureModel(userConfig)
 		if err != nil {
 			fmt.Printf("⚠️  Could not configure model: %v\n", err)
 		}
-	} else if !hasValidAuth {
+	case !hasValidAuth:
 		fmt.Println("⏭️  Skipping model configuration (authentication required)")
-	} else {
+	default:
 		fmt.Println("⏭️  Skipping model configuration (environment not set)")
 	}
 

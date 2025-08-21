@@ -35,7 +35,7 @@ func getWellKnownEndpoints(issuerURL string) (*WellKnownConfig, error) {
 	}
 
 	// Append the well-known path
-	u.Path = u.Path + "/.well-known/openid-configuration"
+	u.Path += "/.well-known/openid-configuration"
 
 	// Make the HTTP request
 	resp, err := http.Get(u.String())
@@ -259,7 +259,7 @@ func Authenticate(a config.Config) (*oauth2.Token, error) {
 
 	pkce, err := oauth2params.NewPKCE()
 	if err != nil {
-		log.Fatalf("error: %s", err)
+		return nil, fmt.Errorf("error: %s", err)
 	}
 
 	// Set up oauth2cli configuration
@@ -295,7 +295,7 @@ func Authenticate(a config.Config) (*oauth2.Token, error) {
 		return nil
 	})
 	if err := eg.Wait(); err != nil {
-		log.Fatalf("authorization error: %s", err)
+		return nil, fmt.Errorf("authorization error: %s", err)
 	}
 
 	token := <-tokenChan

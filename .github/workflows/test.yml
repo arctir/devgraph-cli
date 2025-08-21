@@ -56,7 +56,13 @@ jobs:
           go-version: "1.24"
           cache: true
 
+      - name: Install dependencies
+        run: git config --global url."https://x-oauth-basic:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com" && go mod download
+        env:
+          GITHUB_TOKEN: ${{ secrets.ARCTIR_GH_ACTIONS_TOKEN }}
+          GOPRIVATE: github.com/arctir/*
+
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
-          version: latest
+          version: v2.1

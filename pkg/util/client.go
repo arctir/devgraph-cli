@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -17,6 +18,24 @@ func GetAuthenticatedHTTPClient(config config.Config) (*http.Client, error) {
 	return auth.AuthenticatedClient(config)
 }
 
+// DevgraphSecuritySource implements the SecuritySource interface for Devgraph API
+type DevgraphSecuritySource struct {
+	config config.Config
+}
+
+// OAuth2PasswordBearer provides the OAuth2 bearer token for API requests
+func (s *DevgraphSecuritySource) OAuth2PasswordBearer(ctx context.Context, operationName api.OperationName) (api.OAuth2PasswordBearer, error) {
+	creds, err := auth.LoadCredentials()
+	if err != nil {
+		return api.OAuth2PasswordBearer{}, err
+	}
+	
+	return api.OAuth2PasswordBearer{
+		Token:  creds.AccessToken,
+		Scopes: []string{}, // Scopes are handled by the token itself
+	}, nil
+}
+
 // GetAuthenticatedClient returns a Devgraph API client with authentication configured.
 // This is a higher-level client that wraps the HTTP client and provides typed
 // methods for interacting with Devgraph API endpoints.
@@ -26,7 +45,8 @@ func GetAuthenticatedClient(config config.Config) (*api.Client, error) {
 		return nil, err
 	}
 
-	return api.NewClient(config.ApiURL, nil, api.WithClient(httpClient))
+	securitySource := &DevgraphSecuritySource{config: config}
+	return api.NewClient(config.ApiURL, securitySource, api.WithClient(httpClient))
 }
 
 // IsAuthenticated checks if the user has valid authentication credentials.

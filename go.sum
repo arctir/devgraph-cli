@@ -11,6 +11,8 @@ github.com/apapsch/go-jsonmerge/v2 v2.0.0 h1:axGnT1gRIfimI7gJifB699GoE/oq+F2MU7D
 github.com/apapsch/go-jsonmerge/v2 v2.0.0/go.mod h1:lvDnEdqiQrp0O42VQGgmlKpxL1AP2+08jFMw88y4klk=
 github.com/arctir/go-devgraph v0.0.0-20250819033500-47f9e3330acb h1:2R+38ZtQOIFNmZO4PpWRlPjC71M61YukvyJFbFHEL2M=
 github.com/arctir/go-devgraph v0.0.0-20250819033500-47f9e3330acb/go.mod h1:R/OOn/fzQf0PxI7jsUL6M1cPk8Y1KulpBjUPO0e3vxk=
+github.com/arctir/go-devgraph v0.0.0-20250821192502-808b29b9c28f h1:iLCExPnPW+EY4t4nbAhdBJmuxcOHydng97tJGwX+FEo=
+github.com/arctir/go-devgraph v0.0.0-20250821192502-808b29b9c28f/go.mod h1:R/OOn/fzQf0PxI7jsUL6M1cPk8Y1KulpBjUPO0e3vxk=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1 h1:HwpRHbFMcZLEVr42D4p7XBqjyuxQH5SMiErDT4WkJ2k=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1/go.mod h1:uYgXzlJ7ZpABp8OJ+exZzJJhRNQ2ASbcXHWsFqH8hp8=
 github.com/aymanbagabas/go-udiff v0.2.0 h1:TK0fH4MteXUDspT88n8CKzvK0X9O2xu9yQjWpi6yML8=

@@ -119,7 +119,7 @@ func (s *SetupCommand) configureEnvironment(userConfig *config.UserConfig) error
 
 	if len(*envs) == 1 {
 		env := (*envs)[0]
-		userConfig.Settings.DefaultEnvironment = env.Id.String()
+		userConfig.Settings.DefaultEnvironment = env.ID.String()
 		fmt.Printf("✅ Only one environment available: %s\n", env.Name)
 		return nil
 	}
@@ -142,7 +142,7 @@ func (s *SetupCommand) configureEnvironment(userConfig *config.UserConfig) error
 		}
 
 		selectedEnv := (*envs)[choice-1]
-		userConfig.Settings.DefaultEnvironment = selectedEnv.Id.String()
+		userConfig.Settings.DefaultEnvironment = selectedEnv.ID.String()
 		fmt.Printf("✅ Environment set to: %s\n", selectedEnv.Name)
 		break
 	}

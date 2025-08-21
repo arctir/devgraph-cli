@@ -141,8 +141,8 @@ func (c *ConfigShowCommand) Run() error {
 		}
 		if envs, err := util.GetEnvironments(apiConfig); err == nil && envs != nil {
 			for _, env := range *envs {
-				if env.Id.String() == userConfig.Settings.DefaultEnvironment {
-					envDisplay = fmt.Sprintf("%s (%s)", env.Name, env.Id.String())
+				if env.ID.String() == userConfig.Settings.DefaultEnvironment {
+					envDisplay = fmt.Sprintf("%s (%s)", env.Name, env.ID.String())
 					break
 				}
 			}

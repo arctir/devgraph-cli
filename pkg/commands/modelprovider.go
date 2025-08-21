@@ -5,7 +5,8 @@ import (
 	"fmt"
 
 	"github.com/arctir/devgraph-cli/pkg/util"
-	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
+	api "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
+	"github.com/google/uuid"
 )
 
 type ModelProviderCommand struct {
@@ -43,53 +44,52 @@ func (e *ModelProviderCreateCommand) Run() error {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
 
-	var data devgraphv1.ModelProviderCreate_Data
+	var data api.ModelProviderCreateData
 	switch e.Type {
 	case "openai":
-		provider := devgraphv1.OpenAIModelProviderCreate{
-			Type:    "openai",
-			Name:    e.Name,
-			ApiKey:  e.ApiKey,
-			Default: e.Default,
+		provider := api.OpenAIModelProviderCreate{
+			Type:   "openai",
+			Name:   e.Name,
+			APIKey: e.ApiKey,
 		}
-		err := data.FromOpenAIModelProviderCreate(provider)
-		if err != nil {
-			return fmt.Errorf("failed to create OpenAI model provider data: %w", err)
+		// Set optional fields if provided
+		if e.Default != nil {
+			provider.Default = api.NewOptBool(*e.Default)
 		}
+		data = api.NewOpenAIModelProviderCreateModelProviderCreateData(provider)
 	case "xai":
-		provider := devgraphv1.XAIModelProviderCreate{
-			Type:    "xai",
-			Name:    e.Name,
-			ApiKey:  e.ApiKey,
-			Default: e.Default,
+		provider := api.XAIModelProviderCreate{
+			Type:   "xai",
+			Name:   e.Name,
+			APIKey: e.ApiKey,
 		}
-		err := data.FromXAIModelProviderCreate(provider)
-		if err != nil {
-			return fmt.Errorf("failed to create XAI model provider data: %w", err)
+		// Set optional fields if provided
+		if e.Default != nil {
+			provider.Default = api.NewOptBool(*e.Default)
 		}
+		data = api.NewXAIModelProviderCreateModelProviderCreateData(provider)
 	default:
 		return fmt.Errorf("unsupported model provider type: %s", e.Type)
 	}
 
-	body := devgraphv1.ModelProviderCreate{
+	body := api.ModelProviderCreate{
 		Data: data,
 	}
 
 	// Make the API call to create the model provider
-	response, err := client.CreateModelproviderWithResponse(context.TODO(), body)
+	response, err := client.CreateModelprovider(context.TODO(), &body)
 	if err != nil {
 		return fmt.Errorf("failed to create model provider: %w", err)
 	}
 
-	// Check the response status
-	if response.StatusCode() != 201 {
-		if response.JSON422 != nil {
-			return fmt.Errorf("validation error: %v", response.JSON422.Detail)
-		}
-		return fmt.Errorf("unexpected status code: %d", response.StatusCode())
+	// Check the response type
+	switch response.(type) {
+	case *api.ModelProviderResponse:
+		fmt.Printf("Model provider '%s' created successfully.\n", e.Name)
+	default:
+		return fmt.Errorf("failed to create model provider")
 	}
 
-	// Return the created model provider
 	return nil
 }
 
@@ -98,16 +98,23 @@ func (e *ModelProviderGetCommand) Run() error {
 	if err != nil {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
-	resp, err := client.GetModelproviderWithResponse(context.Background(), e.Id)
+	uuid, err := uuid.Parse(e.Id)
 	if err != nil {
-		return fmt.Errorf("failed to get ModelProvider endpoint: %w", err)
+		return fmt.Errorf("invalid UUID: %w", err)
 	}
-	if resp.StatusCode() != 200 {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+	params := api.GetModelproviderParams{
+		ProviderID: uuid,
 	}
-	provider := resp.JSON200
-	if provider == nil {
-		return fmt.Errorf("ModelProvider endpoint with ID '%s' not found", e.Id)
+	resp, err := client.GetModelprovider(context.Background(), params)
+	if err != nil {
+		return fmt.Errorf("failed to get model provider: %w", err)
+	}
+	// Check the response type
+	switch r := resp.(type) {
+	case *api.ModelProviderResponse:
+		fmt.Printf("Model provider found: %v\n", *r)
+	default:
+		return fmt.Errorf("model provider with ID '%s' not found", e.Id)
 	}
 
 	return nil
@@ -119,22 +126,23 @@ func (e *ModelProviderListCommand) Run() error {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
 
-	resp, err := client.GetModelprovidersWithResponse(context.Background())
+	resp, err := client.GetModelproviders(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to list model providers: %w", err)
 	}
 
-	if resp.StatusCode() != 200 {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+	// Check the response type
+	switch r := resp.(type) {
+	case *api.GetModelprovidersOKApplicationJSON:
+		providers := []api.ModelProviderResponse(*r)
+		if len(providers) == 0 {
+			fmt.Println("No model providers found.")
+			return nil
+		}
+		displayModelProviders(&providers)
+	default:
+		return fmt.Errorf("failed to list model providers")
 	}
-
-	providers := resp.JSON200
-	if len(*providers) == 0 {
-		fmt.Println("No model providers found.")
-		return nil
-	}
-
-	displayModelProviders(providers)
 	return nil
 }
 
@@ -143,18 +151,29 @@ func (e *ModelProviderDeleteCommand) Run() error {
 	if err != nil {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
-	resp, err := client.DeleteModelproviderWithResponse(context.Background(), e.Id)
+	uuid, err := uuid.Parse(e.Id)
+	if err != nil {
+		return fmt.Errorf("invalid UUID: %w", err)
+	}
+	params := api.DeleteModelproviderParams{
+		ProviderID: uuid,
+	}
+	resp, err := client.DeleteModelprovider(context.Background(), params)
 	if err != nil {
 		return fmt.Errorf("failed to delete model provider: %w", err)
 	}
-	if resp.StatusCode() != 204 {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+	// Check the response type
+	switch resp.(type) {
+	case *api.DeleteModelproviderNoContent:
+		// Success
+	default:
+		return fmt.Errorf("failed to delete model provider")
 	}
 	fmt.Printf("Model provider with ID '%s' deleted successfully.\n", e.Id)
 	return nil
 }
 
-func displayModelProviders(providers *[]devgraphv1.ModelProviderResponse) {
+func displayModelProviders(providers *[]api.ModelProviderResponse) {
 	if providers == nil || len(*providers) == 0 {
 		fmt.Println("No environments found.")
 	}
@@ -162,31 +181,30 @@ func displayModelProviders(providers *[]devgraphv1.ModelProviderResponse) {
 	headers := []string{"ID", "Name", "Type"}
 	data := make([]map[string]interface{}, len(*providers))
 	for i, provider := range *providers {
-		providerType, err := provider.Discriminator()
-		if err != nil {
-			fmt.Printf("Failed to determine provider type: %v\n", err)
-			continue
-		}
-		if providerType == "xai" {
-			p, err := provider.AsXAIModelProviderResponse()
-			if err == nil {
+		if provider.IsXAIModelProviderResponse() {
+			if p, ok := provider.GetXAIModelProviderResponse(); ok {
 				data[i] = map[string]interface{}{
 					"Name": p.Name,
-					"ID":   p.Id,
+					"ID":   p.ID,
 					"Type": "xai",
 				}
 				continue
 			}
-		} else if providerType == "openai" {
-			p, err := provider.AsOpenAIModelProviderResponse()
-			if err == nil {
+		} else if provider.IsOpenAIModelProviderResponse() {
+			if p, ok := provider.GetOpenAIModelProviderResponse(); ok {
 				data[i] = map[string]interface{}{
 					"Name": p.Name,
-					"ID":   p.Id,
+					"ID":   p.ID,
 					"Type": "openai",
 				}
 				continue
 			}
+		}
+		// If we get here, it's an unknown provider type
+		data[i] = map[string]interface{}{
+			"Name": "Unknown",
+			"ID":   "Unknown",
+			"Type": "unknown",
 		}
 	}
 	util.DisplaySimpleTable(data, headers)

@@ -39,8 +39,8 @@ func GetEnvironments(config config.Config) (*[]api.EnvironmentResponse, error) {
 
 	// Check if response is successful
 	switch r := resp.(type) {
-	case *api.GetEnvironmentsOK:
-		envs := []api.EnvironmentResponse(*r.ApplicationJSON)
+	case *api.GetEnvironmentsOKApplicationJSON:
+		envs := []api.EnvironmentResponse(*r)
 		return &envs, nil
 	default:
 		return nil, fmt.Errorf("failed to fetch environments")

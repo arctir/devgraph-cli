@@ -3,9 +3,10 @@ package commands
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/arctir/devgraph-cli/pkg/util"
+	api "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
+	"github.com/google/uuid"
 )
 
 type EntityDefinitionCommand struct {
@@ -44,20 +45,23 @@ func (e *EntityDefinitionListCommand) Run() error {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
 
-	resp, err := client.GetEntityDefinitionsWithResponse(context.Background())
+	resp, err := client.GetEntityDefinitions(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to list entity definitions: %w", err)
 	}
-	if resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+	// Check if response is successful
+	switch r := resp.(type) {
+	case *api.GetEntityDefinitionsOKApplicationJSON:
+		defs := []api.EntityDefinitionResponse(*r)
+		data := make([]map[string]interface{}, 0, len(defs))
+		for _, def := range defs {
+			gvk := fmt.Sprintf("%s/%s", def.Group, def.Kind)
+			data = append(data, map[string]interface{}{"ID": def.ID.String(), "GVK": gvk})
+		}
+		util.DisplaySimpleTable(data, []string{"ID", "GVK"})
+	default:
+		return fmt.Errorf("failed to fetch entity definitions")
 	}
-
-	data := make([]map[string]interface{}, 0, len(*resp.JSON200))
-	for _, def := range *resp.JSON200 {
-		gvk := fmt.Sprintf("%s/%s", def.Group, def.Kind)
-		data = append(data, map[string]interface{}{"ID": def.Id.String(), "GVK": gvk})
-	}
-	util.DisplaySimpleTable(data, []string{"ID", "GVK"})
 	return nil
 }
 
@@ -71,12 +75,23 @@ func (e *EntityDefinitionDeleteCommand) Run() error {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
 
-	resp, err := client.DeleteEntityDefinitionWithResponse(context.Background(), e.Id)
+	uuid, err := uuid.Parse(e.Id)
+	if err != nil {
+		return fmt.Errorf("invalid UUID: %w", err)
+	}
+	params := api.DeleteEntityDefinitionParams{
+		DefinitionID: uuid,
+	}
+	resp, err := client.DeleteEntityDefinition(context.Background(), params)
 	if err != nil {
 		return fmt.Errorf("failed to delete entity definition: %w", err)
 	}
-	if resp.StatusCode() != 204 {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+	// Check if response is successful
+	switch resp.(type) {
+	case *api.DeleteEntityDefinitionNoContent:
+		// Success
+	default:
+		return fmt.Errorf("failed to delete entity definition")
 	}
 
 	fmt.Printf("Entity definition with ID '%s' deleted successfully.\n", e.Id)

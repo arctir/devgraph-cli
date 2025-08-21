@@ -3,12 +3,10 @@ package commands
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/arctir/devgraph-cli/pkg/util"
-	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
-	"k8s.io/utils/ptr"
+	api "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
 )
 
 type TokenCommand struct {
@@ -70,21 +68,24 @@ func (a *TokenCreate) Run() error {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
 
-	response, err := client.CreateTokenWithResponse(context.Background(), devgraphv1.CreateTokenJSONRequestBody{
-		Name:      a.Name,
-		Scopes:    ptr.To(a.Scopes),
-		ExpiresAt: ptr.To(""), // Empty string means no expiration
-	})
+	tokenCreate := api.ApiTokenCreate{
+		Name:   a.Name,
+		Scopes: a.Scopes,
+		// Set ExpiresAt to null (no expiration)
+		ExpiresAt: api.NewOptApiTokenCreateExpiresAt(api.NewNullApiTokenCreateExpiresAt(struct{}{})),
+	}
+	response, err := client.CreateToken(context.Background(), &tokenCreate)
 	if err != nil {
 		return fmt.Errorf("error creating token: %v", err)
 	}
-	if response.StatusCode() != http.StatusCreated {
-		return fmt.Errorf("failed to create token, status code: %d", response.StatusCode())
+	// Check the response type
+	switch r := response.(type) {
+	case *api.ApiTokenResponse:
+		tokens := []api.ApiTokenResponse{*r}
+		displayTokens(&tokens)
+	default:
+		return fmt.Errorf("failed to create token")
 	}
-
-	token := response.JSON201
-	tokens := []devgraphv1.ApiTokenResponse{*token}
-	displayTokens(&tokens)
 	return nil
 }
 
@@ -94,33 +95,53 @@ func (a *TokenList) Run() error {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
 
-	response, err := client.GetTokensWithResponse(context.Background())
+	response, err := client.GetTokens(context.Background())
 	if err != nil {
 		return fmt.Errorf("error listing tokens: %v", err)
 	}
-	if response.StatusCode() != http.StatusOK {
-		return fmt.Errorf("failed to list tokens, status code: %d", response.StatusCode())
+	// Check the response type
+	switch r := response.(type) {
+	case *api.GetTokensOKApplicationJSON:
+		tokens := []api.ApiTokenResponse(*r)
+		displayTokens(&tokens)
+	default:
+		return fmt.Errorf("failed to list tokens")
 	}
-
-	tokens := response.JSON200
-	displayTokens(tokens)
 
 	return nil
 }
 
-func displayTokens(tokens *[]devgraphv1.ApiTokenResponse) {
+func displayTokens(tokens *[]api.ApiTokenResponse) {
 	headers := []string{"ID", "Name", "Scopes", "Token", "Expires At"}
 
 	data := make([]map[string]interface{}, 0, len(*tokens))
 	for _, token := range *tokens {
 		expiresAt := "Never"
-		if token.ExpiresAt != nil && *token.ExpiresAt != "" {
-			expiresAt = *token.ExpiresAt
+		if token.ExpiresAt.IsSet() {
+			if expires, ok := token.ExpiresAt.Get(); ok {
+				if expires.IsString() {
+					if s, ok := expires.GetString(); ok && s != "" {
+						expiresAt = s
+					}
+				}
+			}
 		}
+		
+		scopes := "None"
+		if token.Scopes.IsSet() {
+			if scopesData, ok := token.Scopes.Get(); ok {
+				if scopesData.IsStringArray() {
+					if scopesArray, ok := scopesData.GetStringArray(); ok {
+						scopes = strings.Join(scopesArray, ", ")
+					}
+				}
+			}
+		}
+		
 		data = append(data, map[string]interface{}{
-			"ID":         token.Id,
+			"ID":         token.ID,
 			"Name":       token.Name,
-			"Scopes":     strings.Join(*token.Scopes, ", "),
+			"Scopes":     scopes,
 			"Token":      token.Token,
 			"Expires At": expiresAt,
 		})

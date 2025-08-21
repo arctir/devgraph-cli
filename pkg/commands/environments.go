@@ -7,7 +7,8 @@ import (
 	"github.com/arctir/devgraph-cli/pkg/auth"
 	"github.com/arctir/devgraph-cli/pkg/config"
 	"github.com/arctir/devgraph-cli/pkg/util"
-	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
+	api "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
+	"github.com/google/uuid"
 )
 
 type EnvironmentListCommand struct {
@@ -94,7 +95,7 @@ func (e *EnvironmentSwitchCommand) Run() error {
 	return nil
 }
 
-func displayEnvironments(envs *[]devgraphv1.EnvironmentResponse) {
+func displayEnvironments(envs *[]api.EnvironmentResponse) {
 	if envs == nil || len(*envs) == 0 {
 		fmt.Println("No environments found.")
 		return
@@ -105,7 +106,7 @@ func displayEnvironments(envs *[]devgraphv1.EnvironmentResponse) {
 	for i, env := range *envs {
 		data[i] = map[string]any{
 			"Name": env.Name,
-			"ID":   env.Id,
+			"ID":   env.ID,
 			"Slug": env.Slug,
 		}
 	}
@@ -123,22 +124,30 @@ func (e *EnvironmentUserListCommand) Run() error {
 	}
 
 	ctx := context.TODO()
-	resp, err := client.ListEnvironmentUsersWithResponse(ctx, e.Environment)
+	envUUID, err := uuid.Parse(e.Environment)
+	if err != nil {
+		return fmt.Errorf("invalid environment UUID: %w", err)
+	}
+	params := api.ListEnvironmentUsersParams{
+		EnvironmentID: envUUID,
+	}
+	resp, err := client.ListEnvironmentUsers(ctx, params)
 	if err != nil {
 		return err
 	}
 
-	if resp.StatusCode() != 200 {
-		return fmt.Errorf("failed to fetch environment users: status code %d", resp.StatusCode())
+	// Check if response is successful
+	switch r := resp.(type) {
+	case *api.ListEnvironmentUsersOKApplicationJSON:
+		users := []api.EnvironmentUserResponse(*r)
+		if len(users) == 0 {
+			fmt.Println("No users found in this environment.")
+			return nil
+		}
+		displayEnvironmentUsers(&users)
+	default:
+		return fmt.Errorf("failed to list environment users")
 	}
-
-	users := resp.JSON200
-	if users == nil || len(*users) == 0 {
-		fmt.Println("No users found in this environment.")
-		return nil
-	}
-
-	displayEnvironmentUsers(users)
 	return nil
 }
 
@@ -153,18 +162,29 @@ func (e *EnvironmentUserAddCommand) Run() error {
 	}
 
 	ctx := context.TODO()
-	invite := devgraphv1.EnvironmentUserInvite{
+	invite := api.EnvironmentUserInvite{
 		EmailAddress: e.Email,
-		Role:         &e.Role,
+		Role:         api.NewOptString(e.Role),
 	}
 
-	resp, err := client.InviteEnvironmentUserWithResponse(ctx, e.Environment, invite)
+	envUUID, err := uuid.Parse(e.Environment)
+	if err != nil {
+		return fmt.Errorf("invalid environment UUID: %w", err)
+	}
+	params := api.InviteEnvironmentUserParams{
+		EnvironmentID: envUUID,
+	}
+	resp, err := client.InviteEnvironmentUser(ctx, &invite, params)
 	if err != nil {
 		return err
 	}
 
-	if resp.StatusCode() != 200 && resp.StatusCode() != 201 {
-		return fmt.Errorf("failed to invite user: status code %d", resp.StatusCode())
+	// Check if response is successful
+	switch resp.(type) {
+	case *api.EnvironmentUserResponse:
+		// Success
+	default:
+		return fmt.Errorf("failed to invite user")
 	}
 
 	fmt.Printf("Successfully invited %s to the environment with role %s\n", e.Email, e.Role)
@@ -182,20 +202,32 @@ func (e *EnvironmentUserRemoveCommand) Run() error {
 	}
 
 	ctx := context.TODO()
-	resp, err := client.DeleteEnvironmentUserWithResponse(ctx, e.Environment, e.UserID)
+	envUUID, err := uuid.Parse(e.Environment)
+	if err != nil {
+		return fmt.Errorf("invalid environment UUID: %w", err)
+	}
+	params := api.DeleteEnvironmentUserParams{
+		EnvironmentID: envUUID,
+		UserID:        e.UserID,
+	}
+	resp, err := client.DeleteEnvironmentUser(ctx, params)
 	if err != nil {
 		return err
 	}
 
-	if resp.StatusCode() != 200 && resp.StatusCode() != 204 {
-		return fmt.Errorf("failed to remove user: status code %d", resp.StatusCode())
+	// Check if response is successful
+	switch resp.(type) {
+	case *api.DeleteEnvironmentUserNoContent:
+		// Success
+	default:
+		return fmt.Errorf("failed to remove user")
 	}
 
 	fmt.Printf("Successfully removed user %s from the environment\n", e.UserID)
 	return nil
 }
 
-func displayEnvironmentUsers(users *[]devgraphv1.EnvironmentUserResponse) {
+func displayEnvironmentUsers(users *[]api.EnvironmentUserResponse) {
 	if users == nil || len(*users) == 0 {
 		fmt.Println("No users found in this environment.")
 		return
@@ -205,7 +237,7 @@ func displayEnvironmentUsers(users *[]devgraphv1.EnvironmentUserResponse) {
 	data := make([]map[string]any, len(*users))
 	for i, user := range *users {
 		data[i] = map[string]any{
-			"ID":     user.Id,
+			"ID":     user.ID,
 			"Email":  user.EmailAddress,
 			"Role":   user.Role,
 			"Status": user.Status,

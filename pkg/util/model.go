@@ -23,8 +23,8 @@ func GetModels(config config.Config) (*[]api.ModelResponse, error) {
 
 	// Check if response is successful
 	switch r := resp.(type) {
-	case *api.GetModelsOK:
-		models := []api.ModelResponse(*r.ApplicationJSON)
+	case *api.GetModelsOKApplicationJSON:
+		models := []api.ModelResponse(*r)
 		return &models, nil
 	default:
 		return nil, fmt.Errorf("failed to fetch models")

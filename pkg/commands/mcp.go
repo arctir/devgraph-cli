@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/arctir/devgraph-cli/pkg/util"
-	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
-	"k8s.io/utils/ptr"
+	api "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
+	"github.com/google/uuid"
 )
 
 type MCPCommand struct {
@@ -60,19 +60,29 @@ func (e *MCPCreateCommand) Run() error {
 		headers[key] = value
 	}
 
-	request := devgraphv1.CreateMcpendpointJSONRequestBody{
-		Name:        e.Name,
-		Url:         e.Url,
-		Description: &e.Description,
-		Headers:     ptr.To(headers),
+	request := api.MCPEndpointCreate{
+		Name: e.Name,
+		URL:  e.Url,
+	}
+	
+	// Set optional fields if provided
+	if e.Description != "" {
+		request.Description = api.NewOptMCPEndpointCreateDescription(api.NewStringMCPEndpointCreateDescription(e.Description))
+	}
+	if len(headers) > 0 {
+		request.Headers = api.NewOptMCPEndpointCreateHeaders(api.MCPEndpointCreateHeaders(headers))
 	}
 
-	resp, err := client.CreateMcpendpointWithResponse(context.Background(), request)
+	resp, err := client.CreateMcpendpoint(context.Background(), &request)
 	if err != nil {
 		return fmt.Errorf("failed to create MCP endpoint: %w", err)
 	}
-	if resp.StatusCode() != 201 {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+	// Check the response type
+	switch resp.(type) {
+	case *api.MCPEndpointResponse:
+		// Success
+	default:
+		return fmt.Errorf("failed to create MCP endpoint")
 	}
 
 	fmt.Printf("MCP endpoint '%s' created successfully.\n", e.Name)
@@ -85,24 +95,32 @@ func (e *MCPGetCommand) Run() error {
 	if err != nil {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
-	resp, err := client.GetMcpendpointWithResponse(context.Background(), e.Id)
+	uuid, err := uuid.Parse(e.Id)
+	if err != nil {
+		return fmt.Errorf("invalid UUID: %w", err)
+	}
+	params := api.GetMcpendpointParams{
+		McpendpointID: uuid,
+	}
+	resp, err := client.GetMcpendpoint(context.Background(), params)
 	if err != nil {
 		return fmt.Errorf("failed to get MCP endpoint: %w", err)
 	}
-	if resp.StatusCode() != 200 {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode())
-	}
-	endpoint := resp.JSON200
-	if endpoint == nil {
+	// Check the response type
+	switch r := resp.(type) {
+	case *api.MCPEndpointResponse:
+		description := ""
+		if r.Description.IsSet() {
+			if desc, ok := r.Description.Get(); ok && desc.IsString() {
+				if s, ok := desc.GetString(); ok {
+					description = s
+				}
+			}
+		}
+		fmt.Printf("ID: %s\nName: %s\nURL: %s\nDescription: %s\n", r.ID, r.Name, r.URL, description)
+	default:
 		return fmt.Errorf("MCP endpoint with ID '%s' not found", e.Id)
 	}
-
-	description := ""
-	if endpoint.Description != nil {
-		description = *endpoint.Description
-	}
-
-	fmt.Printf("ID: %s\nName: %s\nURL: %s\nDescription: %s\n", endpoint.Id, endpoint.Name, endpoint.Url, description)
 
 	return nil
 }
@@ -113,31 +131,33 @@ func (e *MCPListCommand) Run() error {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
 
-	resp, err := client.GetMcpendpointsWithResponse(context.Background())
+	resp, err := client.GetMcpendpoints(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to list MCP endpoints: %w", err)
 	}
 
-	if resp.StatusCode() != 200 {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode())
-	}
-
-	endpoints := resp.JSON200
-	if len(*endpoints) == 0 {
-		fmt.Println("No MCP endpoints found.")
-		return nil
-	}
-
-	headers := []string{"ID", "Name", "Url"}
-	data := make([]map[string]interface{}, len(*endpoints))
-	for i, env := range *endpoints {
-		data[i] = map[string]interface{}{
-			"Name": env.Name,
-			"ID":   env.Id,
-			"Url":  env.Url,
+	// Check the response type
+	switch r := resp.(type) {
+	case *api.GetMcpendpointsOKApplicationJSON:
+		endpoints := []api.MCPEndpointResponse(*r)
+		if len(endpoints) == 0 {
+			fmt.Println("No MCP endpoints found.")
+			return nil
 		}
+
+		headers := []string{"ID", "Name", "URL"}
+		data := make([]map[string]interface{}, len(endpoints))
+		for i, endpoint := range endpoints {
+			data[i] = map[string]interface{}{
+				"Name": endpoint.Name,
+				"ID":   endpoint.ID,
+				"URL":  endpoint.URL,
+			}
+		}
+		util.DisplaySimpleTable(data, headers)
+	default:
+		return fmt.Errorf("failed to list MCP endpoints")
 	}
-	util.DisplaySimpleTable(data, headers)
 	return nil
 }
 
@@ -146,12 +166,23 @@ func (e *MCPDeleteCommand) Run() error {
 	if err != nil {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
-	resp, err := client.DeleteMcpendpointWithResponse(context.Background(), e.Id)
+	uuid, err := uuid.Parse(e.Id)
+	if err != nil {
+		return fmt.Errorf("invalid UUID: %w", err)
+	}
+	params := api.DeleteMcpendpointParams{
+		McpendpointID: uuid,
+	}
+	resp, err := client.DeleteMcpendpoint(context.Background(), params)
 	if err != nil {
 		return fmt.Errorf("failed to delete MCP endpoint: %w", err)
 	}
-	if resp.StatusCode() != 204 {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+	// Check the response type
+	switch resp.(type) {
+	case *api.DeleteMcpendpointNoContent:
+		// Success
+	default:
+		return fmt.Errorf("failed to delete MCP endpoint")
 	}
 	fmt.Printf("MCP endpoint with ID '%s' deleted successfully.\n", e.Id)
 	return nil

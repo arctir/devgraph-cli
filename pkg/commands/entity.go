@@ -4,11 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 
 	"github.com/arctir/devgraph-cli/pkg/util"
-	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
+	api "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
 )
 
 type EntityCommand struct {
@@ -55,17 +54,27 @@ func (e *EntityCreateCommand) Run() error {
 		return fmt.Errorf("failed to read file %s: %w", e.FileName, err)
 	}
 
-	var entity devgraphv1.Entity
+	var entity api.Entity
 	if err := json.Unmarshal(data, &entity); err != nil {
 		return fmt.Errorf("failed to parse entity JSON: %w", err)
 	}
 
-	resp, err := client.CreateEntityWithResponse(context.Background(), e.Group, e.Version, e.Namespace, e.Plural, entity)
+	params := api.CreateEntityParams{
+		Group:     e.Group,
+		Version:   e.Version,
+		Namespace: e.Namespace,
+		Plural:    e.Plural,
+	}
+	resp, err := client.CreateEntity(context.Background(), &entity, params)
 	if err != nil {
 		return fmt.Errorf("failed to create entity: %w", err)
 	}
-	if resp.StatusCode() != http.StatusCreated {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+	// Check if response is successful
+	switch resp.(type) {
+	case *api.EntityResponse:
+		// Success
+	default:
+		return fmt.Errorf("failed to create entity")
 	}
 
 	fmt.Printf("Entity '%s' created successfully in namespace '%s'.\n", entity.Metadata.Name, e.Namespace)
@@ -78,19 +87,28 @@ func (e *EntityGetCommand) Run() error {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
 
-	resp, err := client.GetEntityWithResponse(context.Background(), e.Group, e.Version, e.Kind, e.Namespace, e.Name)
+	params := api.GetEntityParams{
+		Group:     e.Group,
+		Version:   e.Version,
+		Kind:      e.Kind,
+		Namespace: e.Namespace,
+		Name:      e.Name,
+	}
+	resp, err := client.GetEntity(context.Background(), params)
 	if err != nil {
 		return fmt.Errorf("failed to get entity: %w", err)
 	}
-	if resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+	// Check if response is successful
+	switch r := resp.(type) {
+	case *api.EntityResponse:
+		output, err := json.MarshalIndent(*r, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal entity to JSON: %w", err)
+		}
+		fmt.Println(string(output))
+	default:
+		return fmt.Errorf("entity not found")
 	}
-
-	output, err := json.MarshalIndent(resp.JSON200, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal entity to JSON: %w", err)
-	}
-	fmt.Println(string(output))
 	return nil
 }
 
@@ -100,12 +118,23 @@ func (e *EntityDeleteCommand) Run() error {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
 
-	resp, err := client.DeleteEntityWithResponse(context.Background(), e.Group, e.Version, e.Kind, e.Namespace, e.Name)
+	params := api.DeleteEntityParams{
+		Group:     e.Group,
+		Version:   e.Version,
+		Kind:      e.Kind,
+		Namespace: e.Namespace,
+		Name:      e.Name,
+	}
+	resp, err := client.DeleteEntity(context.Background(), params)
 	if err != nil {
 		return fmt.Errorf("failed to delete entity: %w", err)
 	}
-	if resp.StatusCode() != http.StatusNoContent {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+	// Check if response is successful
+	switch resp.(type) {
+	case *api.DeleteEntityNoContent:
+		// Success
+	default:
+		return fmt.Errorf("failed to delete entity")
 	}
 
 	fmt.Printf("Entity '%s' deleted successfully from namespace '%s'.\n", e.Name, e.Namespace)

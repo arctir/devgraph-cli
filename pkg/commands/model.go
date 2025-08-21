@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/arctir/devgraph-cli/pkg/util"
-	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
+	api "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
 	"github.com/google/uuid"
 )
 
@@ -49,30 +49,33 @@ func (e *ModelCreateCommand) Run() error {
 		return fmt.Errorf("invalid provider ID format: %w", err)
 	}
 
-	body := devgraphv1.ModelCreate{
-		ProviderId:  providerId,
-		Name:        e.Name,
-		Description: e.Description,
-		Default:     e.Default,
+	body := api.ModelCreate{
+		ProviderID: providerId,
+		Name:       e.Name,
+	}
+	
+	// Set optional fields if provided
+	if e.Description != nil {
+		body.Description = api.NewOptModelCreateDescription(api.NewStringModelCreateDescription(*e.Description))
+	}
+	if e.Default != nil {
+		body.Default = api.NewOptBool(*e.Default)
 	}
 
 	// Make the API call to create the model
-	response, err := client.CreateModelWithResponse(context.TODO(), body)
+	response, err := client.CreateModel(context.TODO(), &body)
 	if err != nil {
 		return fmt.Errorf("failed to create model: %w", err)
 	}
 
-	// Check the response status
-	if response.StatusCode() != 201 {
-		if response.JSON422 != nil {
-			return fmt.Errorf("validation error: %v", response.JSON422.Detail)
-		}
-		return fmt.Errorf("unexpected status code: %d", response.StatusCode())
+	// Check the response type
+	switch r := response.(type) {
+	case *api.ModelResponse:
+		models := []api.ModelResponse{*r}
+		displayModels(&models)
+	default:
+		return fmt.Errorf("failed to create model")
 	}
-
-	model := response.JSON201
-	models := []devgraphv1.ModelResponse{*model}
-	displayModels(&models)
 
 	return nil
 }
@@ -82,16 +85,20 @@ func (e *ModelGetCommand) Run() error {
 	if err != nil {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
-	resp, err := client.GetModelWithResponse(context.Background(), e.Id)
+	params := api.GetModelParams{
+		ModelName: e.Id,
+	}
+	resp, err := client.GetModel(context.Background(), params)
 	if err != nil {
-		return fmt.Errorf("failed to get Model endpoint: %w", err)
+		return fmt.Errorf("failed to get model: %w", err)
 	}
-	if resp.StatusCode() != 200 {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode())
-	}
-	model := resp.JSON200
-	if model == nil {
-		return fmt.Errorf("model with ID '%s' not found", e.Id)
+	// Check the response type
+	switch r := resp.(type) {
+	case *api.ModelResponse:
+		models := []api.ModelResponse{*r}
+		displayModels(&models)
+	default:
+		return fmt.Errorf("model with name '%s' not found", e.Id)
 	}
 	return nil
 }
@@ -102,22 +109,23 @@ func (e *ModelListCommand) Run() error {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
 
-	resp, err := client.GetModelsWithResponse(context.Background())
+	resp, err := client.GetModels(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to list models: %w", err)
 	}
 
-	if resp.StatusCode() != 200 {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+	// Check the response type
+	switch r := resp.(type) {
+	case *api.GetModelsOKApplicationJSON:
+		models := []api.ModelResponse(*r)
+		if len(models) == 0 {
+			fmt.Println("No models found.")
+			return nil
+		}
+		displayModels(&models)
+	default:
+		return fmt.Errorf("failed to list models")
 	}
-
-	models := resp.JSON200
-	if len(*models) == 0 {
-		fmt.Println("No models found.")
-		return nil
-	}
-
-	displayModels(models)
 
 	return nil
 }
@@ -127,18 +135,25 @@ func (e *ModelDeleteCommand) Run() error {
 	if err != nil {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
-	resp, err := client.DeleteModelWithResponse(context.Background(), e.Id)
+	params := api.DeleteModelParams{
+		ModelName: e.Id,
+	}
+	resp, err := client.DeleteModel(context.Background(), params)
 	if err != nil {
 		return fmt.Errorf("failed to delete model: %w", err)
 	}
-	if resp.StatusCode() != 204 {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+	// Check the response type
+	switch resp.(type) {
+	case *api.DeleteModelNoContent:
+		// Success
+	default:
+		return fmt.Errorf("failed to delete model")
 	}
-	fmt.Printf("Model with ID '%s' deleted successfully.\n", e.Id)
+	fmt.Printf("Model with name '%s' deleted successfully.\n", e.Id)
 	return nil
 }
 
-func displayModels(models *[]devgraphv1.ModelResponse) {
+func displayModels(models *[]api.ModelResponse) {
 	if models == nil || len(*models) == 0 {
 		fmt.Println("No models found.")
 	}
@@ -148,8 +163,8 @@ func displayModels(models *[]devgraphv1.ModelResponse) {
 	for i, model := range *models {
 		data[i] = map[string]interface{}{
 			"Name":        model.Name,
-			"ID":          model.Id,
-			"Provider ID": model.ProviderId,
+			"ID":          model.ID,
+			"Provider ID": model.ProviderID,
 		}
 	}
 	util.DisplaySimpleTable(data, headers)

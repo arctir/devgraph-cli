@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/arctir/devgraph-cli/pkg/config"
-	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
+	api "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
 )
 
 // NoEnvironmentError is returned when a user is not associated with any environments
@@ -25,23 +25,26 @@ func (e *NoEnvironmentError) Error() string {
 
 // GetEnvironments retrieves all environments accessible to the authenticated user.
 // It returns a slice of EnvironmentResponse objects or an error if the request fails.
-func GetEnvironments(config config.Config) (*[]devgraphv1.EnvironmentResponse, error) {
+func GetEnvironments(config config.Config) (*[]api.EnvironmentResponse, error) {
 	client, err := GetAuthenticatedClient(config)
 	if err != nil {
 		return nil, err
 	}
 
 	ctx := context.TODO()
-	resp, err := client.GetEnvironmentsWithResponse(ctx)
+	resp, err := client.GetEnvironments(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("failed to fetch environments: status code %d", resp.StatusCode())
+	// Check if response is successful
+	switch r := resp.(type) {
+	case *api.GetEnvironmentsOK:
+		envs := []api.EnvironmentResponse(*r.ApplicationJSON)
+		return &envs, nil
+	default:
+		return nil, fmt.Errorf("failed to fetch environments")
 	}
-
-	return resp.JSON200, nil
 }
 
 // CheckEnvironment validates and ensures an environment is set in the config.
@@ -72,14 +75,14 @@ func CheckEnvironment(config *config.Config) (bool, error) {
 		}
 
 		if len(*envs) == 1 {
-			config.Environment = (*envs)[0].Id.String()
+			config.Environment = (*envs)[0].ID.String()
 			fmt.Printf("Only one environment available. Environment set to: %s\n", config.Environment)
 			return true, nil
 		}
 
 		fmt.Println("Environment not set. Available environments:")
 		for i, env := range *envs {
-			fmt.Printf("%d. %s - %s (ID: %s)\n", i+1, env.Name, env.Slug, env.Id)
+			fmt.Printf("%d. %s - %s (ID: %s)\n", i+1, env.Name, env.Slug, env.ID)
 		}
 
 		reader := bufio.NewReader(os.Stdin)
@@ -94,7 +97,7 @@ func CheckEnvironment(config *config.Config) (bool, error) {
 			return false, fmt.Errorf("invalid environment choice")
 		}
 		// Set the selected environment in the config
-		config.Environment = (*envs)[choice-1].Id.String()
+		config.Environment = (*envs)[choice-1].ID.String()
 		fmt.Printf("Environment set to: %s\n", config.Environment)
 		return true, nil
 	}
@@ -127,8 +130,8 @@ func ResolveEnvironmentUUID(config config.Config, environmentIdentifier string) 
 	}
 
 	for _, env := range *envs {
-		if env.Id.String() == environmentIdentifier || env.Slug == environmentIdentifier || env.Name == environmentIdentifier {
-			return env.Id.String(), nil
+		if env.ID.String() == environmentIdentifier || env.Slug == environmentIdentifier || env.Name == environmentIdentifier {
+			return env.ID.String(), nil
 		}
 	}
 
@@ -137,7 +140,7 @@ func ResolveEnvironmentUUID(config config.Config, environmentIdentifier string) 
 
 // getEnvironmentList returns a list of environment names/slugs for error messages.
 // It formats each environment as "Name (slug)" for user-friendly error reporting.
-func getEnvironmentList(envs []devgraphv1.EnvironmentResponse) []string {
+func getEnvironmentList(envs []api.EnvironmentResponse) []string {
 	var names []string
 	for _, env := range envs {
 		names = append(names, fmt.Sprintf("%s (%s)", env.Name, env.Slug))

@@ -5,27 +5,30 @@ import (
 	"fmt"
 
 	"github.com/arctir/devgraph-cli/pkg/config"
-	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
+	api "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
 )
 
 // GetModels retrieves all available models
-func GetModels(config config.Config) (*[]devgraphv1.ModelResponse, error) {
+func GetModels(config config.Config) (*[]api.ModelResponse, error) {
 	client, err := GetAuthenticatedClient(config)
 	if err != nil {
 		return nil, err
 	}
 
 	ctx := context.Background()
-	resp, err := client.GetModelsWithResponse(ctx)
+	resp, err := client.GetModels(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("failed to fetch models: status code %d", resp.StatusCode())
+	// Check if response is successful
+	switch r := resp.(type) {
+	case *api.GetModelsOK:
+		models := []api.ModelResponse(*r.ApplicationJSON)
+		return &models, nil
+	default:
+		return nil, fmt.Errorf("failed to fetch models")
 	}
-
-	return resp.JSON200, nil
 }
 
 // ValidateModel checks if the given model name exists and is accessible
@@ -41,7 +44,7 @@ func ValidateModel(config config.Config, modelName string) error {
 
 	for _, model := range *models {
 		// Check by name, ID, or any other identifier
-		if model.Name == modelName || model.Id.String() == modelName {
+		if model.Name == modelName || model.ID.String() == modelName {
 			return nil
 		}
 	}
@@ -50,7 +53,7 @@ func ValidateModel(config config.Config, modelName string) error {
 }
 
 // getModelList returns a list of model names for error messages
-func getModelList(models []devgraphv1.ModelResponse) []string {
+func getModelList(models []api.ModelResponse) []string {
 	var names []string
 	for _, model := range models {
 		names = append(names, model.Name)

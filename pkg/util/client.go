@@ -6,7 +6,7 @@ import (
 
 	"github.com/arctir/devgraph-cli/pkg/auth"
 	"github.com/arctir/devgraph-cli/pkg/config"
-	devgraphv1 "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
+	api "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
 )
 
 // GetAuthenticatedHTTPClient returns an HTTP client configured with authentication
@@ -20,13 +20,13 @@ func GetAuthenticatedHTTPClient(config config.Config) (*http.Client, error) {
 // GetAuthenticatedClient returns a Devgraph API client with authentication configured.
 // This is a higher-level client that wraps the HTTP client and provides typed
 // methods for interacting with Devgraph API endpoints.
-func GetAuthenticatedClient(config config.Config) (*devgraphv1.ClientWithResponses, error) {
+func GetAuthenticatedClient(config config.Config) (*api.Client, error) {
 	httpClient, err := GetAuthenticatedHTTPClient(config)
 	if err != nil {
 		return nil, err
 	}
 
-	return devgraphv1.NewClientWithResponses(config.ApiURL, devgraphv1.WithHTTPClient(httpClient))
+	return api.NewClient(config.ApiURL, nil, api.WithClient(httpClient))
 }
 
 // IsAuthenticated checks if the user has valid authentication credentials.

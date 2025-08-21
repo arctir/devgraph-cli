@@ -50,14 +50,14 @@ func formatResponse(text string) {
 		glamour.WithAutoStyle(),
 		glamour.WithWordWrap(0), // 0 = no word wrap limit, use full terminal width
 	)
-	
+
 	if err == nil {
 		if formatted, err := renderer.Render(text); err == nil {
 			typeWriter(formatted)
 			return
 		}
 	}
-	
+
 	// Fallback to manual formatting if glamour fails
 	typeWriter(formatTextWithSyntaxHighlighting(text))
 }
@@ -67,32 +67,32 @@ func formatTextWithSyntaxHighlighting(text string) string {
 	// Regex to find code blocks
 	codeBlockRegex := regexp.MustCompile("```(\\w+)?\\s*\\n([\\s\\S]*?)\\n```")
 	inlineCodeRegex := regexp.MustCompile("`([^`]+)`")
-	
+
 	// Handle code blocks
 	result := codeBlockRegex.ReplaceAllStringFunc(text, func(match string) string {
 		parts := codeBlockRegex.FindStringSubmatch(match)
 		if len(parts) >= 3 {
 			language := parts[1]
 			code := parts[2]
-			
+
 			// Try syntax highlighting
 			var highlighted strings.Builder
 			if err := quick.Highlight(&highlighted, code, language, "terminal", "monokai"); err == nil {
 				return "\n" + gray("┌─ Code ("+language+")") + "\n" + highlighted.String() + gray("└─") + "\n"
 			}
-			
+
 			// Fallback to simple formatting
 			return "\n" + gray("┌─ Code") + "\n" + code + "\n" + gray("└─") + "\n"
 		}
 		return match
 	})
-	
+
 	// Handle inline code
 	result = inlineCodeRegex.ReplaceAllStringFunc(result, func(match string) string {
 		code := strings.Trim(match, "`")
 		return yellow("`" + code + "`")
 	})
-	
+
 	return result
 }
 
@@ -102,10 +102,10 @@ func typeWriter(text string) {
 	fmt.Print(gray("● "))
 	time.Sleep(200 * time.Millisecond)
 	fmt.Print("\r                    \r") // Clear the line completely
-	
+
 	// Clean up the text to avoid extra trailing newlines
 	text = strings.TrimRight(text, "\n")
-	
+
 	// Type out the text word by word for more natural feel
 	lines := strings.Split(text, "\n")
 	for i, line := range lines {
@@ -113,45 +113,45 @@ func typeWriter(text string) {
 			fmt.Println()
 			continue
 		}
-		
+
 		// Different delays for different content types
-		delay := 40 * time.Millisecond  // Default delay between words (readable but not too slow)
-		if strings.Contains(line, "```") || strings.HasPrefix(strings.TrimSpace(line), "┌─") || 
-		   strings.HasPrefix(strings.TrimSpace(line), "└─") {
+		delay := 40 * time.Millisecond // Default delay between words (readable but not too slow)
+		if strings.Contains(line, "```") || strings.HasPrefix(strings.TrimSpace(line), "┌─") ||
+			strings.HasPrefix(strings.TrimSpace(line), "└─") {
 			// Faster for code block delimiters
 			delay = 15 * time.Millisecond
-		} else if strings.HasPrefix(strings.TrimSpace(line), "    ") || 
-				  strings.HasPrefix(strings.TrimSpace(line), "\t") {
+		} else if strings.HasPrefix(strings.TrimSpace(line), "    ") ||
+			strings.HasPrefix(strings.TrimSpace(line), "\t") {
 			// Faster for code content (indented lines)
 			delay = 25 * time.Millisecond
 		}
-		
+
 		// Split line into words while preserving spacing
 		words := splitLineIntoWords(line)
-		
+
 		// If no words (empty line after trimming), treat as empty line
 		if len(words) == 0 {
 			// This shouldn't happen since we check for empty lines above,
 			// but handle it gracefully just in case
 			continue
 		}
-		
+
 		for j, word := range words {
 			fmt.Print(word)
-			
+
 			// Add space and delay between words (but not after the last word of a line)
 			if j < len(words)-1 {
 				fmt.Print(" ")
 				time.Sleep(delay)
 			}
 		}
-		
+
 		if i < len(lines)-1 {
 			fmt.Println()
 		}
 	}
-	fmt.Println() // Single newline at the end of content
-	fmt.Println() // Extra newline before next prompt
+	fmt.Println()
+	fmt.Println()
 }
 
 // splitLineIntoWords splits a line into words while preserving leading spaces but not trailing
@@ -161,16 +161,16 @@ func splitLineIntoWords(line string) []string {
 	if strings.TrimSpace(line) == "" {
 		return []string{}
 	}
-	
+
 	// Trim trailing spaces to avoid printing spaces until newline
 	line = strings.TrimRight(line, " \t")
-	
+
 	// Simple approach: split by spaces and preserve leading spaces
 	fields := strings.Fields(line)
 	if len(fields) == 0 {
 		return []string{}
 	}
-	
+
 	// Find leading spaces to preserve indentation
 	leadingSpaces := ""
 	for _, char := range line {
@@ -180,17 +180,17 @@ func splitLineIntoWords(line string) []string {
 			break
 		}
 	}
-	
+
 	// Add leading spaces to first word if any
 	if leadingSpaces != "" && len(fields) > 0 {
 		fields[0] = leadingSpaces + fields[0]
 	}
-	
+
 	return fields
 }
 
 func userPrompt(username string) {
-	fmt.Printf("%s %s\n", blue("❯"), bold(green(username)))
+	fmt.Printf("%s %s\n\n ", blue("❯"), bold(green(username)))
 }
 
 func devgraphPrompt() {
@@ -319,7 +319,7 @@ func (c *Chat) Run() error {
 		fmt.Print(boldCyan(smallHeader))
 	}
 	fmt.Printf("\n%s Welcome to %s! \n", cyan("✨"), bold(cyan("devgraph")))
-	fmt.Printf("%s Type %s to quit, %s to change model, or %s for commands.\n\n", 
+	fmt.Printf("%s Type %s to quit, %s to change model, or %s for commands.\n\n",
 		gray("   "), yellow("'/exit'"), yellow("'/model'"), yellow("'/help'"))
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -355,13 +355,13 @@ func (c *Chat) Run() error {
 
 		// Show thinking indicator while making API call
 		go showThinkingIndicator()
-		
+
 		resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 			Model:     c.Model,
 			Messages:  messages,
 			MaxTokens: c.MaxTokens,
 		})
-		
+
 		if err != nil {
 			devgraphPrompt()
 			// Extract just the relevant error message without verbose context
@@ -379,7 +379,7 @@ func (c *Chat) Run() error {
 		for _, choice := range resp.Choices {
 			aiResponse := choice.Message.Content
 			devgraphPrompt()
-			
+
 			// Use enhanced formatting for the response
 			formatResponse(aiResponse)
 
@@ -396,13 +396,13 @@ func (c *Chat) Run() error {
 // handleSlashCommand processes slash commands during chat
 func (c *Chat) handleSlashCommand(input string) error {
 	command := strings.ToLower(strings.TrimSpace(input))
-	
+
 	switch command {
 	case "/exit":
 		fmt.Printf("%s %s\n", cyan("👋"), "Goodbye!")
 		os.Exit(0)
 		return nil
-		
+
 	case "/help":
 		fmt.Printf("\n%s %s\n", blue("ℹ"), bold("Available commands:"))
 		fmt.Printf("  %s   - Exit the chat\n", yellow("/exit"))
@@ -410,10 +410,10 @@ func (c *Chat) handleSlashCommand(input string) error {
 		fmt.Printf("  %s   - Show this help message\n", yellow("/help"))
 		fmt.Println()
 		return nil
-		
+
 	case "/model":
 		return c.changeModel()
-		
+
 	default:
 		return fmt.Errorf("unknown command: %s. Type '/help' for available commands", input)
 	}
@@ -422,27 +422,27 @@ func (c *Chat) handleSlashCommand(input string) error {
 // changeModel allows the user to select a different model during chat
 func (c *Chat) changeModel() error {
 	fmt.Printf("\n%s %s\n\n", magenta("🤖"), bold("Available models:"))
-	
+
 	// Get available models from API
 	models, err := util.GetModels(c.Config)
 	if err != nil {
 		return fmt.Errorf("failed to fetch available models: %w", err)
 	}
-	
+
 	if models == nil || len(*models) == 0 {
 		return fmt.Errorf("no models are available from the API")
 	}
-	
+
 	// Display models with current one highlighted
 	for i, model := range *models {
 		if model.Name == c.Model {
-			fmt.Printf("  %s %s %s\n", green("✓"), blue(fmt.Sprintf("%d.", i+1)), 
+			fmt.Printf("  %s %s %s\n", green("✓"), blue(fmt.Sprintf("%d.", i+1)),
 				boldCyan(model.Name+" "+gray("(current)")))
 		} else {
 			fmt.Printf("    %s %s\n", blue(fmt.Sprintf("%d.", i+1)), model.Name)
 		}
 	}
-	
+
 	// Get user selection
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
@@ -451,31 +451,30 @@ func (c *Chat) changeModel() error {
 		if !scanner.Scan() {
 			return fmt.Errorf("failed to read input")
 		}
-		
+
 		input := strings.TrimSpace(scanner.Text())
 		if input == "c" || input == "cancel" {
 			fmt.Printf("%s %s\n", yellow("⚠"), "Model change cancelled.")
 			return nil
 		}
-		
+
 		// Try to parse as number
 		choice, err := strconv.Atoi(input)
 		if err != nil || choice < 1 || choice > len(*models) {
-			fmt.Printf("%s Invalid choice. Please enter a number between %s and %s, or %s to cancel.\n", 
+			fmt.Printf("%s Invalid choice. Please enter a number between %s and %s, or %s to cancel.\n",
 				red("✖"), blue("1"), blue(fmt.Sprintf("%d", len(*models))), yellow("'c'"))
 			continue
 		}
-		
+
 		selectedModel := (*models)[choice-1]
 		if selectedModel.Name == c.Model {
 			fmt.Printf("%s Already using model: %s\n", blue("ℹ"), cyan(selectedModel.Name))
 			return nil
 		}
-		
+
 		// Update the current model
 		c.Model = selectedModel.Name
 		fmt.Printf("%s Switched to model: %s\n\n", green("✅"), bold(green(selectedModel.Name)))
 		return nil
 	}
 }
-

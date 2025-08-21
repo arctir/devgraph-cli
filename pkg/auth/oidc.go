@@ -270,7 +270,7 @@ func Authenticate(a config.Config) (*oauth2.Token, error) {
 		AuthCodeOptions:      pkce.AuthCodeOptions(),
 		TokenRequestOptions:  pkce.TokenRequestOptions(),
 		LocalServerReadyChan: ready,
-		Logf:                 log.Printf,
+		//Logf:                 log.Printf,
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)

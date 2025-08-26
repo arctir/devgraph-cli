@@ -7,7 +7,7 @@ toolchain go1.24.6
 require (
 	github.com/alecthomas/chroma/v2 v2.20.0
 	github.com/alecthomas/kong v1.9.0
-	github.com/arctir/go-devgraph v0.0.0-20250824145215-104ddccc9098
+	github.com/arctir/go-devgraph v0.0.0-20250826194853-5881630848d0
 	github.com/charmbracelet/glamour v0.10.0
 	github.com/coreos/go-oidc/v3 v3.13.0
 	github.com/fatih/color v1.18.0

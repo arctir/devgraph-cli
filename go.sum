@@ -8,6 +8,8 @@ github.com/alecthomas/repr v0.5.1 h1:E3G4t2QbHTSNpPKBgMTln5KLkZHLOcU7r37J4pXBuIg
 github.com/alecthomas/repr v0.5.1/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/arctir/go-devgraph v0.0.0-20250824145215-104ddccc9098 h1:dF5uqbq3FEZ4mPzfCFLt4Iu1I6zELdtiyMdepI0F45U=
 github.com/arctir/go-devgraph v0.0.0-20250824145215-104ddccc9098/go.mod h1:R/OOn/fzQf0PxI7jsUL6M1cPk8Y1KulpBjUPO0e3vxk=
+github.com/arctir/go-devgraph v0.0.0-20250826194853-5881630848d0 h1:0KQqhiGhIJb0cXKiinVH+wPMwdqnmQXS+bQ/bpKDsGg=
+github.com/arctir/go-devgraph v0.0.0-20250826194853-5881630848d0/go.mod h1:R/OOn/fzQf0PxI7jsUL6M1cPk8Y1KulpBjUPO0e3vxk=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1 h1:HwpRHbFMcZLEVr42D4p7XBqjyuxQH5SMiErDT4WkJ2k=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1/go.mod h1:uYgXzlJ7ZpABp8OJ+exZzJJhRNQ2ASbcXHWsFqH8hp8=
 github.com/aymanbagabas/go-udiff v0.2.0 h1:TK0fH4MteXUDspT88n8CKzvK0X9O2xu9yQjWpi6yML8=

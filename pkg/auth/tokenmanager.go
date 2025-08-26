@@ -129,7 +129,6 @@ func (m *OIDCTokenManager) HTTPClient() *http.Client {
 		Headers: map[string]string{
 			"Content-Type":         "application/json",
 			"Accept":               "application/json",
-			"Authorization":        fmt.Sprintf("Bearer %s", m.GetCurrentToken().AccessToken),
 			"Devgraph-Environment": m.devgraphEnvironment,
 		},
 	}

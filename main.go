@@ -40,6 +40,8 @@ type CLI struct {
 	ModelProvider commands.ModelProviderCommand `kong:"cmd,name='modelprovider',help='Manage Model Provider resources for Devgraph'"`
 	// Model manages AI models and configurations
 	Model commands.ModelCommand `kong:"cmd,help='Manage Model resources for Devgraph'"`
+	// OAuthService manages OAuth service configurations
+	OAuthService commands.OAuthServiceCommand `kong:"cmd,name='oauthservice',help='Manage OAuth services for Devgraph'"`
 
 	// Admin provides administrative commands (hidden from regular users)
 	Admin admincommands.AdminCommand `kong:"cmd,hidden='',help='Admin commands for Devgraph'"`

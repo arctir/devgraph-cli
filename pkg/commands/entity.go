@@ -5,15 +5,293 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/arctir/devgraph-cli/pkg/util"
 	api "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
+	"github.com/fatih/color"
+	"gopkg.in/yaml.v3"
 )
+
+// parseEntityID parses an entity ID in the format [entity://]<group>/<version>/<plural>/<namespace>/<name>
+// and returns the individual components
+func parseEntityID(entityID string) (group, version, plural, namespace, name string, err error) {
+	// Remove optional entity:// prefix
+	id := strings.TrimPrefix(entityID, "entity://")
+	
+	// Split the ID into parts
+	parts := strings.Split(id, "/")
+	if len(parts) != 5 {
+		return "", "", "", "", "", fmt.Errorf("invalid entity ID format: expected <group>/<version>/<plural>/<namespace>/<name>, got: %s", entityID)
+	}
+	
+	return parts[0], parts[1], parts[2], parts[3], parts[4], nil
+}
+
+// FilteredEntity represents an entity with only the required fields
+type FilteredEntity struct {
+	ApiVersion string      `json:"apiVersion" yaml:"apiVersion"`
+	Kind       string      `json:"kind" yaml:"kind"`
+	Metadata   interface{} `json:"metadata" yaml:"metadata"`
+	Spec       interface{} `json:"spec,omitempty" yaml:"spec,omitempty"`
+	Status     interface{} `json:"status,omitempty" yaml:"status,omitempty"`
+}
+
+// filterEntity creates a FilteredEntity with only the required fields
+func filterEntity(entity api.EntityResponse) FilteredEntity {
+	filtered := FilteredEntity{
+		ApiVersion: entity.ApiVersion,
+		Kind:       entity.Kind,
+		Metadata:   entity.Metadata,
+	}
+	
+	// Extract actual values from optional types
+	if entity.Spec.IsSet() {
+		if spec, ok := entity.Spec.Get(); ok {
+			filtered.Spec = spec
+		}
+	}
+	
+	if entity.Status.IsSet() {
+		if status, ok := entity.Status.Get(); ok {
+			filtered.Status = status
+		}
+	}
+	
+	return filtered
+}
+
+// displayEntityList displays a list of entities in a table format
+func displayEntityList(entities []api.EntityResponse) error {
+	if len(entities) == 0 {
+		fmt.Println("No entities found.")
+		return nil
+	}
+
+	return displayEntitiesAsTable(entities)
+}
+
+// displayEntitiesAsTable displays entities in table format
+func displayEntitiesAsTable(entities []api.EntityResponse) error {
+	// Prepare data for table display
+	headers := []string{"Entity ID", "Name", "Namespace", "API Version", "Kind"}
+	data := make([]map[string]interface{}, len(entities))
+	
+	for i, entity := range entities {
+		// Use the entity ID provided by the API response
+		data[i] = map[string]interface{}{
+			"Entity ID":   entity.ID,
+			"Name":       entity.Name,
+			"Namespace":  entity.Namespace,
+			"API Version": entity.ApiVersion,
+			"Kind":       entity.Kind,
+		}
+	}
+	
+	displayEntityTable(data, headers)
+	return nil
+}
+
+// displayEntitiesAsYAML displays entities in YAML format with filtered fields
+func displayEntitiesAsYAML(entities []api.EntityResponse) error {
+	var filteredEntities []FilteredEntity
+	for _, entity := range entities {
+		filteredEntities = append(filteredEntities, filterEntity(entity))
+	}
+	
+	yamlData, err := yaml.Marshal(filteredEntities)
+	if err != nil {
+		return fmt.Errorf("failed to marshal entities to YAML: %w", err)
+	}
+	
+	fmt.Print(string(yamlData))
+	return nil
+}
+
+// displayEntitiesAsJSON displays entities in JSON format with filtered fields
+func displayEntitiesAsJSON(entities []api.EntityResponse) error {
+	var filteredEntities []FilteredEntity
+	for _, entity := range entities {
+		filteredEntities = append(filteredEntities, filterEntity(entity))
+	}
+	
+	jsonData, err := json.MarshalIndent(filteredEntities, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal entities to JSON: %w", err)
+	}
+	
+	fmt.Println(string(jsonData))
+	return nil
+}
+
+// displaySingleEntity displays a single entity in the specified format with filtered fields
+func displaySingleEntity(entity api.EntityResponse, outputFormat string) error {
+	// First convert to JSON to get clean serialization
+	jsonData, err := json.Marshal(entity)
+	if err != nil {
+		return fmt.Errorf("failed to marshal entity to JSON: %w", err)
+	}
+	
+	// Parse back into a generic map to filter fields
+	var entityMap map[string]interface{}
+	if err := json.Unmarshal(jsonData, &entityMap); err != nil {
+		return fmt.Errorf("failed to unmarshal entity: %w", err)
+	}
+	
+	// Create filtered map with only desired fields
+	filteredMap := map[string]interface{}{
+		"apiVersion": entityMap["apiVersion"],
+		"kind":       entityMap["kind"],
+		"metadata":   entityMap["metadata"],
+	}
+	
+	// Add spec and status if they exist
+	if spec, exists := entityMap["spec"]; exists && spec != nil {
+		filteredMap["spec"] = spec
+	}
+	if status, exists := entityMap["status"]; exists && status != nil {
+		filteredMap["status"] = status
+	}
+	
+	switch strings.ToLower(outputFormat) {
+	case "yaml", "yml":
+		yamlData, err := yaml.Marshal(filteredMap)
+		if err != nil {
+			return fmt.Errorf("failed to marshal entity to YAML: %w", err)
+		}
+		fmt.Print(string(yamlData))
+	case "json":
+		fallthrough
+	default:
+		jsonData, err := json.MarshalIndent(filteredMap, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal entity to JSON: %w", err)
+		}
+		fmt.Println(string(jsonData))
+	}
+	
+	return nil
+}
+
+// displayEntityTable creates a table for entities with no truncation on Entity ID column
+func displayEntityTable(data []map[string]interface{}, headers []string) {
+	if len(data) == 0 {
+		fmt.Println("No data to display.")
+		return
+	}
+
+	// Calculate column widths
+	colWidths := make([]int, len(headers))
+
+	// Initialize with header widths
+	for i, header := range headers {
+		colWidths[i] = len(header)
+	}
+
+	// Check data widths
+	for _, row := range data {
+		for i, header := range headers {
+			if val, ok := row[header]; ok {
+				var valueStr string
+				switch v := val.(type) {
+				case string:
+					valueStr = v
+				case int:
+					valueStr = fmt.Sprintf("%d", v)
+				case float64:
+					valueStr = fmt.Sprintf("%.2f", v)
+				default:
+					valueStr = fmt.Sprintf("%v", v)
+				}
+
+				// Don't truncate Entity ID column, but limit other columns for readability
+				if header != "Entity ID" {
+					maxWidth := 60
+					if len(valueStr) > maxWidth {
+						valueStr = valueStr[:maxWidth-3] + "..."
+					}
+				}
+
+				if len(valueStr) > colWidths[i] {
+					colWidths[i] = len(valueStr)
+				}
+			}
+		}
+	}
+
+	// Add some spacing
+	fmt.Println()
+
+	// Print headers with color
+	headerColor := color.New(color.FgBlue, color.Bold)
+	for i, header := range headers {
+		if i > 0 {
+			fmt.Print("  ")
+		}
+		coloredHeader := headerColor.Sprint(header)
+		fmt.Print(coloredHeader)
+		padding := colWidths[i] - len(header)
+		if padding > 0 {
+			fmt.Print(strings.Repeat(" ", padding))
+		}
+	}
+	fmt.Println()
+
+	// Print separator line
+	for i := range headers {
+		if i > 0 {
+			fmt.Print("  ")
+		}
+		fmt.Print(strings.Repeat("─", colWidths[i]))
+	}
+	fmt.Println()
+
+	// Print data rows
+	gray := color.New(color.FgHiBlack)
+	for _, row := range data {
+		for i, header := range headers {
+			if i > 0 {
+				fmt.Print("  ")
+			}
+
+			var valueStr string
+			if val, ok := row[header]; ok {
+				switch v := val.(type) {
+				case string:
+					valueStr = v
+				case int:
+					valueStr = fmt.Sprintf("%d", v)
+				case float64:
+					valueStr = fmt.Sprintf("%.2f", v)
+				default:
+					valueStr = fmt.Sprintf("%v", v)
+				}
+			} else {
+				valueStr = gray.Sprint("-")
+			}
+
+			// Don't truncate Entity ID column
+			if header != "Entity ID" {
+				maxWidth := 60
+				if len(valueStr) > maxWidth {
+					valueStr = valueStr[:maxWidth-3] + "..."
+				}
+			}
+
+			fmt.Printf("%-*s", colWidths[i], valueStr)
+		}
+		fmt.Println()
+	}
+
+	// Add spacing after
+	fmt.Println()
+}
 
 type EntityCommand struct {
 	Create EntityCreateCommand `cmd:"create" help:"Create a new entity."`
-	Get    EntityGetCommand    `cmd:"get" help:"Get an entity by group/version/kind/namespace/name."`
-	Delete EntityDeleteCommand `cmd:"delete" help:"Delete an entity by group/version/kind/namespace/name."`
+	List   EntityListCommand   `cmd:"" help:"List entities."`
+	Get    EntityGetCommand    `cmd:"get" help:"Get an entity by ID."`
+	Delete EntityDeleteCommand `cmd:"delete" help:"Delete an entity by ID."`
 }
 
 type EntityCreateCommand struct {
@@ -25,22 +303,24 @@ type EntityCreateCommand struct {
 	FileName  string `arg:"" required:"" help:"Path to the entity JSON file."`
 }
 
+type EntityListCommand struct {
+	EnvWrapperCommand
+	Name          string `flag:"name,n" help:"Filter entities by name."`
+	Label         string `flag:"label,l" help:"Filter entities by label selector."`
+	FieldSelector string `flag:"field-selector,f" help:"Filter entities by field selector (e.g., 'spec.metadata.owner=team-a')."`
+	Limit         int    `flag:"limit" default:"100" help:"Maximum number of entities to return."`
+	Offset        int    `flag:"offset" default:"0" help:"Offset for pagination."`
+}
+
 type EntityGetCommand struct {
 	EnvWrapperCommand
-	Group     string `arg:"" required:"" help:"Group of the entity (e.g., apps, core, extensions)."`
-	Version   string `arg:"" required:"" help:"Version of the entity (e.g., v1, v1beta1)."`
-	Kind      string `arg:"" required:"" help:"Kind of the entity (e.g., Deployment, Service)."`
-	Namespace string `arg:"" required:"" help:"Namespace of the entity."`
-	Name      string `arg:"" required:"" help:"Name of the entity."`
+	EntityID string `arg:"" required:"" help:"Entity ID in the format [entity://]<group>/<version>/<plural>/<namespace>/<name>."`
+	Output   string `flag:"output,o" default:"json" help:"Output format: json, yaml."`
 }
 
 type EntityDeleteCommand struct {
 	EnvWrapperCommand
-	Group     string `arg:"" required:"" help:"Group of the entity (e.g., apps, core, extensions)."`
-	Version   string `arg:"" required:"" help:"Version of the entity (e.g., v1, v1beta1)."`
-	Kind      string `arg:"" required:"" help:"Kind of the entity (e.g., Deployment, Service)."`
-	Namespace string `arg:"" required:"" help:"Namespace of the entity."`
-	Name      string `arg:"" required:"" help:"Name of the entity."`
+	EntityID string `arg:"" required:"" help:"Entity ID in the format [entity://]<group>/<version>/<plural>/<namespace>/<name>."`
 }
 
 func (e *EntityCreateCommand) Run() error {
@@ -81,18 +361,74 @@ func (e *EntityCreateCommand) Run() error {
 	return nil
 }
 
+func (e *EntityListCommand) Run() error {
+	client, err := util.GetAuthenticatedClient(e.Config)
+	if err != nil {
+		return fmt.Errorf("failed to create authenticated client: %w", err)
+	}
+
+	// Build the parameters for the API call
+	params := api.GetEntitiesParams{}
+	
+	// Set optional filters if provided
+	if e.Name != "" {
+		params.Name = api.NewOptString(e.Name)
+	}
+	if e.Label != "" {
+		params.Label = api.NewOptString(e.Label)
+	}
+	if e.FieldSelector != "" {
+		params.FieldSelector = api.NewOptString(e.FieldSelector)
+	}
+	if e.Limit > 0 {
+		params.Limit = api.NewOptInt(e.Limit)
+	}
+	if e.Offset > 0 {
+		params.Offset = api.NewOptInt(e.Offset)
+	}
+
+	resp, err := client.GetEntities(context.Background(), params)
+	if err != nil {
+		return fmt.Errorf("failed to list entities: %w", err)
+	}
+
+	// Handle the response
+	switch r := resp.(type) {
+	case *api.EntityResultSetResponse:
+		// EntityResultSetResponse contains PrimaryEntities, RelatedEntities, and Relations
+		// For the list command, we're primarily interested in PrimaryEntities
+		entities := r.PrimaryEntities
+		if len(entities) == 0 {
+			fmt.Println("No entities found.")
+			return nil
+		}
+		return displayEntityList(entities)
+	case *api.GetEntitiesNotFound:
+		fmt.Println("No entities found.")
+		return nil
+	default:
+		return fmt.Errorf("unexpected response type: %T", resp)
+	}
+}
+
 func (e *EntityGetCommand) Run() error {
 	client, err := util.GetAuthenticatedClient(e.Config)
 	if err != nil {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
 
+	// Parse the entity ID to extract individual components
+	group, version, plural, namespace, name, err := parseEntityID(e.EntityID)
+	if err != nil {
+		return err
+	}
+
 	params := api.GetEntityParams{
-		Group:     e.Group,
-		Version:   e.Version,
-		Kind:      e.Kind,
-		Namespace: e.Namespace,
-		Name:      e.Name,
+		Group:     group,
+		Version:   version,
+		Kind:      plural, // Kind is synonymous with plural
+		Namespace: namespace,
+		Name:      name,
 	}
 	resp, err := client.GetEntity(context.Background(), params)
 	if err != nil {
@@ -101,15 +437,10 @@ func (e *EntityGetCommand) Run() error {
 	// Check if response is successful
 	switch r := resp.(type) {
 	case *api.EntityResponse:
-		output, err := json.MarshalIndent(*r, "", "  ")
-		if err != nil {
-			return fmt.Errorf("failed to marshal entity to JSON: %w", err)
-		}
-		fmt.Println(string(output))
+		return displaySingleEntity(*r, e.Output)
 	default:
 		return fmt.Errorf("entity not found")
 	}
-	return nil
 }
 
 func (e *EntityDeleteCommand) Run() error {
@@ -118,12 +449,18 @@ func (e *EntityDeleteCommand) Run() error {
 		return fmt.Errorf("failed to create authenticated client: %w", err)
 	}
 
+	// Parse the entity ID to extract individual components
+	group, version, plural, namespace, name, err := parseEntityID(e.EntityID)
+	if err != nil {
+		return err
+	}
+
 	params := api.DeleteEntityParams{
-		Group:     e.Group,
-		Version:   e.Version,
-		Kind:      e.Kind,
-		Namespace: e.Namespace,
-		Name:      e.Name,
+		Group:     group,
+		Version:   version,
+		Kind:      plural, // Kind is synonymous with plural
+		Namespace: namespace,
+		Name:      name,
 	}
 	resp, err := client.DeleteEntity(context.Background(), params)
 	if err != nil {
@@ -137,6 +474,6 @@ func (e *EntityDeleteCommand) Run() error {
 		return fmt.Errorf("failed to delete entity")
 	}
 
-	fmt.Printf("Entity '%s' deleted successfully from namespace '%s'.\n", e.Name, e.Namespace)
+	fmt.Printf("Entity '%s' deleted successfully from namespace '%s'.\n", name, namespace)
 	return nil
 }

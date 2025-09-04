@@ -22,6 +22,7 @@ type EnvironmentSwitchCommand struct {
 
 type EnvironmentUserListCommand struct {
 	EnvWrapperCommand
+	ShowInvited bool `short:"i" help:"Show only invited users"`
 }
 
 type EnvironmentUserAddCommand struct {
@@ -128,6 +129,31 @@ func (e *EnvironmentUserListCommand) Run() error {
 	if err != nil {
 		return fmt.Errorf("invalid environment UUID: %w", err)
 	}
+
+	if e.ShowInvited {
+		// Use GetPendingInvitations API for invited users
+		params := api.GetPendingInvitationsParams{
+			EnvironmentID: envUUID,
+		}
+		resp, err := client.GetPendingInvitations(ctx, params)
+		if err != nil {
+			return err
+		}
+
+		switch r := resp.(type) {
+		case *api.GetPendingInvitationsOKApplicationJSON:
+			invites := []api.PendingInvitationResponse(*r)
+			if len(invites) == 0 {
+				fmt.Println("No pending invitations found in this environment.")
+				return nil
+			}
+			displayPendingInvitations(&invites)
+		default:
+			return fmt.Errorf("failed to list pending invitations")
+		}
+		return nil
+	}
+
 	params := api.ListEnvironmentUsersParams{
 		EnvironmentID: envUUID,
 	}
@@ -164,7 +190,7 @@ func (e *EnvironmentUserAddCommand) Run() error {
 	ctx := context.TODO()
 	invite := api.EnvironmentUserInvite{
 		EmailAddress: e.Email,
-		Role:         api.NewOptString(e.Role),
+		Role:         api.NewOptEnvironmentUserInviteRole(api.EnvironmentUserInviteRole(e.Role)),
 	}
 
 	envUUID, err := uuid.Parse(e.Environment)
@@ -241,6 +267,25 @@ func displayEnvironmentUsers(users *[]api.EnvironmentUserResponse) {
 			"Email":  user.EmailAddress,
 			"Role":   user.Role,
 			"Status": user.Status,
+		}
+	}
+	util.DisplaySimpleTable(data, headers)
+}
+
+func displayPendingInvitations(invites *[]api.PendingInvitationResponse) {
+	if invites == nil || len(*invites) == 0 {
+		fmt.Println("No pending invitations found in this environment.")
+		return
+	}
+
+	headers := []string{"ID", "Email", "Role", "Status"}
+	data := make([]map[string]any, len(*invites))
+	for i, invite := range *invites {
+		data[i] = map[string]any{
+			"ID":     invite.ID,
+			"Email":  invite.EmailAddress,
+			"Role":   invite.Role,
+			"Status": invite.Status,
 		}
 	}
 	util.DisplaySimpleTable(data, headers)

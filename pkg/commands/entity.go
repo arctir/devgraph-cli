@@ -288,10 +288,11 @@ func displayEntityTable(data []map[string]interface{}, headers []string) {
 }
 
 type EntityCommand struct {
-	Create EntityCreateCommand `cmd:"create" help:"Create a new entity."`
-	List   EntityListCommand   `cmd:"" help:"List entities."`
-	Get    EntityGetCommand    `cmd:"get" help:"Get an entity by ID."`
-	Delete EntityDeleteCommand `cmd:"delete" help:"Delete an entity by ID."`
+	Create        EntityCreateCommand        `cmd:"create" help:"Create a new entity."`
+	List          EntityListCommand          `cmd:"" help:"List entities."`
+	Get           EntityGetCommand           `cmd:"get" help:"Get an entity by ID."`
+	Delete        EntityDeleteCommand        `cmd:"delete" help:"Delete an entity by ID."`
+	Relationships EntityRelationshipsCommand `cmd:"relationships" help:"Show relationships for an entity."`
 }
 
 type EntityCreateCommand struct {
@@ -321,6 +322,12 @@ type EntityGetCommand struct {
 type EntityDeleteCommand struct {
 	EnvWrapperCommand
 	EntityID string `arg:"" required:"" help:"Entity ID in the format [entity://]<group>/<version>/<plural>/<namespace>/<name>."`
+}
+
+type EntityRelationshipsCommand struct {
+	EnvWrapperCommand
+	EntityID string `arg:"" required:"" help:"Entity ID in the format [entity://]<group>/<version>/<plural>/<namespace>/<name>."`
+	Output   string `flag:"output,o" default:"table" help:"Output format: table, json, yaml."`
 }
 
 func (e *EntityCreateCommand) Run() error {
@@ -475,5 +482,136 @@ func (e *EntityDeleteCommand) Run() error {
 	}
 
 	fmt.Printf("Entity '%s' deleted successfully from namespace '%s'.\n", name, namespace)
+	return nil
+}
+
+func (e *EntityRelationshipsCommand) Run() error {
+	client, err := util.GetAuthenticatedClient(e.Config)
+	if err != nil {
+		return fmt.Errorf("failed to create authenticated client: %w", err)
+	}
+
+	// Parse the entity ID to extract individual components
+	group, version, plural, namespace, name, err := parseEntityID(e.EntityID)
+	if err != nil {
+		return err
+	}
+
+	// Build the entity reference
+	entityRef := fmt.Sprintf("%s/%s/%s/%s/%s", group, version, plural, namespace, name)
+
+	// Instead of trying to filter with field selectors, let's get all entities and filter relationships
+	params := api.GetEntitiesParams{
+		Limit: api.NewOptInt(1000), // Get more results to ensure we capture all relationships
+	}
+
+	resp, err := client.GetEntities(context.Background(), params)
+	if err != nil {
+		return fmt.Errorf("failed to get entities: %w", err)
+	}
+
+	// Handle the response
+	switch r := resp.(type) {
+	case *api.EntityResultSetResponse:
+		// Filter relations that involve our target entity
+		var relevantRelations []api.EntityRelationResponse
+		for _, relation := range r.Relations {
+			if relation.Source.ID == entityRef || relation.Target.ID == entityRef {
+				relevantRelations = append(relevantRelations, relation)
+			}
+		}
+
+		if len(relevantRelations) == 0 {
+			fmt.Printf("No relationships found for entity: %s\n", e.EntityID)
+			return nil
+		}
+
+		return e.displayRelationships(relevantRelations, entityRef)
+	case *api.GetEntitiesNotFound:
+		fmt.Printf("No relationships found for entity: %s\n", e.EntityID)
+		return nil
+	default:
+		return fmt.Errorf("unexpected response type: %T", resp)
+	}
+}
+
+func (e *EntityRelationshipsCommand) displayRelationships(relations []api.EntityRelationResponse, targetEntityRef string) error {
+	if len(relations) == 0 {
+		fmt.Printf("No relationships found for entity: %s\n", e.EntityID)
+		return nil
+	}
+
+	switch strings.ToLower(e.Output) {
+	case "table":
+		return e.displayRelationshipsAsTable(relations, targetEntityRef)
+	case "yaml", "yml":
+		return e.displayRelationshipsAsYAML(relations)
+	case "json":
+		return e.displayRelationshipsAsJSON(relations)
+	default:
+		return fmt.Errorf("unsupported output format: %s", e.Output)
+	}
+}
+
+func (e *EntityRelationshipsCommand) displayRelationshipsAsTable(relations []api.EntityRelationResponse, targetEntityRef string) error {
+	headers := []string{"Direction", "Relation Type", "Related Entity", "Namespace"}
+	data := make([]map[string]interface{}, 0)
+
+	for _, relation := range relations {
+		var direction, relatedEntity string
+		
+		// Determine direction and related entity
+		if relation.Source.ID == targetEntityRef {
+			direction = "Outgoing"
+			relatedEntity = relation.Target.ID
+		} else if relation.Target.ID == targetEntityRef {
+			direction = "Incoming"  
+			relatedEntity = relation.Source.ID
+		} else {
+			// This relation doesn't involve our target entity, skip it
+			continue
+		}
+
+		namespace := ""
+		if relation.Namespace.IsSet() {
+			if ns, ok := relation.Namespace.Get(); ok {
+				namespace = ns
+			}
+		}
+
+		data = append(data, map[string]interface{}{
+			"Direction":      direction,
+			"Relation Type":  relation.Relation,
+			"Related Entity": relatedEntity,
+			"Namespace":      namespace,
+		})
+	}
+
+	if len(data) == 0 {
+		fmt.Printf("No relationships found for entity: %s\n", e.EntityID)
+		return nil
+	}
+
+	displayEntityTable(data, headers)
+	return nil
+}
+
+func (e *EntityRelationshipsCommand) displayRelationshipsAsYAML(relations []api.EntityRelationResponse) error {
+	yamlData, err := yaml.Marshal(relations)
+	if err != nil {
+		return fmt.Errorf("failed to marshal relationships to YAML: %w", err)
+	}
+	
+	fmt.Print(string(yamlData))
+	return nil
+}
+
+func (e *EntityRelationshipsCommand) displayRelationshipsAsJSON(relations []api.EntityRelationResponse) error {
+	jsonData, err := json.MarshalIndent(relations, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal relationships to JSON: %w", err)
+	}
+	
+	fmt.Println(string(jsonData))
 	return nil
 }

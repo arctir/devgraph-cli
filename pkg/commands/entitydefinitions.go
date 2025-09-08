@@ -53,12 +53,22 @@ func (e *EntityDefinitionListCommand) Run() error {
 	switch r := resp.(type) {
 	case *api.GetEntityDefinitionsOKApplicationJSON:
 		defs := []api.EntityDefinitionResponse(*r)
-		data := make([]map[string]interface{}, 0, len(defs))
-		for _, def := range defs {
+		data := make([]map[string]any, 0, len(defs))
+		for i, def := range defs {
 			gvk := fmt.Sprintf("%s/%s", def.Group, def.Kind)
-			data = append(data, map[string]interface{}{"ID": def.ID.String(), "GVK": gvk})
+			name := ""
+			if def.Name.IsSet() {
+				name = def.Name.Value
+			}
+			
+			// Debug: print spec for first entity to see available fields
+			if i == 0 {
+				fmt.Printf("DEBUG - Spec fields: %+v\n", def.Spec)
+			}
+			
+			data = append(data, map[string]any{"ID": def.ID.String(), "GVK": gvk, "Description": name})
 		}
-		util.DisplaySimpleTable(data, []string{"ID", "GVK"})
+		util.DisplaySimpleTable(data, []string{"ID", "GVK", "Description"})
 	default:
 		return fmt.Errorf("failed to fetch entity definitions")
 	}

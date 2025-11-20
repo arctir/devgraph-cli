@@ -31,6 +31,7 @@ type MCPCreateCommand struct {
 
 type MCPListCommand struct {
 	EnvWrapperCommand
+	Output string `short:"o" help:"Output format: table, json, yaml" default:"table"`
 }
 
 type MCPGetCommand struct {
@@ -183,8 +184,15 @@ func (e *MCPListCommand) Run() error {
 			return nil
 		}
 
-		headers := []string{"ID", "Name", "URL", "OAuth Service ID"}
-		data := make([]map[string]interface{}, len(endpoints))
+		type mcpOutput struct {
+			ID             string `json:"id" yaml:"id"`
+			Name           string `json:"name" yaml:"name"`
+			URL            string `json:"url" yaml:"url"`
+			OAuthServiceID string `json:"oauth_service_id,omitempty" yaml:"oauth_service_id,omitempty"`
+		}
+
+		structured := make([]mcpOutput, len(endpoints))
+		tableData := make([]map[string]any, len(endpoints))
 		for i, endpoint := range endpoints {
 			oauthServiceID := ""
 			if oauth, ok := endpoint.OAuthServiceID.Get(); ok {
@@ -194,19 +202,26 @@ func (e *MCPListCommand) Run() error {
 			} else {
 				oauthServiceID = "(not set)"
 			}
-			
-			data[i] = map[string]interface{}{
+
+			structured[i] = mcpOutput{
+				ID:             endpoint.ID.String(),
+				Name:           endpoint.Name,
+				URL:            endpoint.URL,
+				OAuthServiceID: oauthServiceID,
+			}
+			tableData[i] = map[string]any{
+				"ID":               endpoint.ID.String(),
 				"Name":             endpoint.Name,
-				"ID":               endpoint.ID,
 				"URL":              endpoint.URL,
 				"OAuth Service ID": oauthServiceID,
 			}
 		}
-		util.DisplaySimpleTable(data, headers)
+
+		headers := []string{"ID", "Name", "URL", "OAuth Service ID"}
+		return util.FormatOutput(e.Output, structured, headers, tableData)
 	default:
 		return fmt.Errorf("failed to list MCP endpoints")
 	}
-	return nil
 }
 
 func (e *MCPDeleteCommand) Run() error {

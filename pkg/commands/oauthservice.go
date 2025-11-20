@@ -44,7 +44,8 @@ type OAuthServiceCreateCommand struct {
 
 type OAuthServiceListCommand struct {
 	EnvWrapperCommand
-	ActiveOnly *bool `flag:"active-only" optional:"" help:"Only return active services."`
+	ActiveOnly *bool  `flag:"active-only" optional:"" help:"Only return active services."`
+	Output     string `short:"o" help:"Output format: table, json, yaml" default:"table"`
 }
 
 type OAuthServiceGetCommand struct {
@@ -195,12 +196,45 @@ func (c *OAuthServiceListCommand) Run() error {
 			fmt.Println("No OAuth services found.")
 			return nil
 		}
-		displayOAuthServices(&r.Services)
+
+		type oauthOutput struct {
+			ID          string   `json:"id" yaml:"id"`
+			Name        string   `json:"name" yaml:"name"`
+			DisplayName string   `json:"display_name" yaml:"display_name"`
+			Active      bool     `json:"active" yaml:"active"`
+			GrantTypes  []string `json:"grant_types" yaml:"grant_types"`
+		}
+
+		structured := make([]oauthOutput, len(r.Services))
+		tableData := make([]map[string]any, len(r.Services))
+		for i, service := range r.Services {
+			isActive := service.IsActive
+			grantTypes := "None"
+			if len(service.SupportedGrantTypes) > 0 {
+				grantTypes = fmt.Sprintf("%v", service.SupportedGrantTypes)
+			}
+
+			structured[i] = oauthOutput{
+				ID:          service.ID.String(),
+				Name:        service.Name,
+				DisplayName: service.DisplayName,
+				Active:      isActive,
+				GrantTypes:  service.SupportedGrantTypes,
+			}
+			tableData[i] = map[string]any{
+				"ID":           service.ID.String(),
+				"Name":         service.Name,
+				"Display Name": service.DisplayName,
+				"Active":       map[bool]string{true: "Yes", false: "No"}[isActive],
+				"Grant Types":  grantTypes,
+			}
+		}
+
+		headers := []string{"ID", "Name", "Display Name", "Active", "Grant Types"}
+		return util.FormatOutput(c.Output, structured, headers, tableData)
 	default:
 		return fmt.Errorf("failed to list oauth services")
 	}
-
-	return nil
 }
 
 func (c *OAuthServiceGetCommand) Run() error {

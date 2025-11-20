@@ -12,6 +12,7 @@ import (
 
 type SubscriptionListCommand struct {
 	config.Config
+	Output string `short:"o" help:"Output format: table, json, yaml" default:"table"`
 }
 
 type SubscriptionCommand struct {
@@ -60,8 +61,17 @@ func (s *SubscriptionListCommand) Run() error {
 	}
 
 	// Build table data
-	headers := []string{"ID", "Status", "Plan", "Period Start", "Period End", "Environments"}
-	data := make([]map[string]interface{}, len(subscriptions))
+	type subOutput struct {
+		ID           string `json:"id" yaml:"id"`
+		Status       string `json:"status" yaml:"status"`
+		Plan         string `json:"plan,omitempty" yaml:"plan,omitempty"`
+		PeriodStart  string `json:"period_start,omitempty" yaml:"period_start,omitempty"`
+		PeriodEnd    string `json:"period_end,omitempty" yaml:"period_end,omitempty"`
+		Environments string `json:"environments" yaml:"environments"`
+	}
+
+	structured := make([]subOutput, len(subscriptions))
+	tableData := make([]map[string]any, len(subscriptions))
 
 	for i, sub := range subscriptions {
 		plan := ""
@@ -92,7 +102,15 @@ func (s *SubscriptionListCommand) Run() error {
 			environments = fmt.Sprintf("%d (%s)", len(envNames), envNames[0])
 		}
 
-		data[i] = map[string]interface{}{
+		structured[i] = subOutput{
+			ID:           sub.ID.String(),
+			Status:       string(sub.Status),
+			Plan:         plan,
+			PeriodStart:  periodStart,
+			PeriodEnd:    periodEnd,
+			Environments: environments,
+		}
+		tableData[i] = map[string]any{
 			"ID":           sub.ID.String(),
 			"Status":       sub.Status,
 			"Plan":         plan,
@@ -102,7 +120,6 @@ func (s *SubscriptionListCommand) Run() error {
 		}
 	}
 
-	displayEntityTable(data, headers)
-
-	return nil
+	headers := []string{"ID", "Status", "Plan", "Period Start", "Period End", "Environments"}
+	return util.FormatOutput(s.Output, structured, headers, tableData)
 }

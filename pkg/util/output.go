@@ -4,13 +4,45 @@
 package util
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
+	"gopkg.in/yaml.v3"
 )
+
+// FormatOutput outputs data in the specified format (table, json, yaml)
+// For table output, pass tableData and headers. For json/yaml, pass structuredData.
+func FormatOutput(format string, structuredData interface{}, headers []string, tableData []map[string]any) error {
+	switch format {
+	case "json":
+		output, err := json.MarshalIndent(structuredData, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal JSON: %w", err)
+		}
+		fmt.Println(string(output))
+	case "yaml":
+		output, err := yaml.Marshal(structuredData)
+		if err != nil {
+			return fmt.Errorf("failed to marshal YAML: %w", err)
+		}
+		fmt.Print(string(output))
+	case "name":
+		// For name-only output, expect structuredData to be a slice of strings
+		if names, ok := structuredData.([]string); ok {
+			for _, name := range names {
+				fmt.Println(name)
+			}
+		}
+	default:
+		// Table output
+		DisplaySimpleTable(tableData, headers)
+	}
+	return nil
+}
 
 // DisplayTable takes a slice of maps (data) and headers, and displays it as a formatted table.
 // Each map represents a row of data, with keys corresponding to column headers.

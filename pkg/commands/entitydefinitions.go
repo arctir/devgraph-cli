@@ -23,6 +23,7 @@ type EntityDefinitionCreateCommand struct {
 
 type EntityDefinitionListCommand struct {
 	EnvWrapperCommand
+	Output string `short:"o" help:"Output format: table, json, yaml" default:"table"`
 }
 
 type EntityDefinitionGetCommand struct {
@@ -53,8 +54,20 @@ func (e *EntityDefinitionListCommand) Run() error {
 	switch r := resp.(type) {
 	case *api.GetEntityDefinitionsOKApplicationJSON:
 		defs := []api.EntityDefinitionResponse(*r)
-		data := make([]map[string]any, 0, len(defs))
-		for _, def := range defs {
+		if len(defs) == 0 {
+			fmt.Println("No entity definitions found.")
+			return nil
+		}
+
+		type defOutput struct {
+			ID          string `json:"id" yaml:"id"`
+			Type        string `json:"type" yaml:"type"`
+			Description string `json:"description,omitempty" yaml:"description,omitempty"`
+		}
+
+		structured := make([]defOutput, len(defs))
+		tableData := make([]map[string]any, len(defs))
+		for i, def := range defs {
 			version := ""
 			if def.Name.IsSet() {
 				version = def.Name.Value
@@ -68,13 +81,23 @@ func (e *EntityDefinitionListCommand) Run() error {
 				description = def.Description.Value
 			}
 
-			data = append(data, map[string]any{"ID": def.ID.String(), "Type": typeStr, "Description": description})
+			structured[i] = defOutput{
+				ID:          def.ID.String(),
+				Type:        typeStr,
+				Description: description,
+			}
+			tableData[i] = map[string]any{
+				"ID":          def.ID.String(),
+				"Type":        typeStr,
+				"Description": description,
+			}
 		}
-		util.DisplaySimpleTable(data, []string{"ID", "Type", "Description"})
+
+		headers := []string{"ID", "Type", "Description"}
+		return util.FormatOutput(e.Output, structured, headers, tableData)
 	default:
 		return fmt.Errorf("failed to fetch entity definitions")
 	}
-	return nil
 }
 
 func (e *EntityDefinitionGetCommand) Run() error {

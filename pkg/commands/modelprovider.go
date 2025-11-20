@@ -26,6 +26,7 @@ type ModelProviderCreateCommand struct {
 
 type ModelProviderListCommand struct {
 	EnvWrapperCommand
+	Output string `short:"o" help:"Output format: table, json, yaml" default:"table"`
 }
 
 type ModelProviderGetCommand struct {
@@ -150,11 +151,42 @@ func (e *ModelProviderListCommand) Run() error {
 			fmt.Println("No model providers found.")
 			return nil
 		}
-		displayModelProviders(&providers)
+
+		type providerOutput struct {
+			ID   string `json:"id" yaml:"id"`
+			Name string `json:"name" yaml:"name"`
+			Type string `json:"type" yaml:"type"`
+		}
+
+		structured := make([]providerOutput, len(providers))
+		tableData := make([]map[string]any, len(providers))
+		for i, provider := range providers {
+			var name, id, providerType string
+			if provider.IsXAIModelProviderResponse() {
+				if p, ok := provider.GetXAIModelProviderResponse(); ok {
+					name, id, providerType = p.Name, p.ID.String(), "xai"
+				}
+			} else if provider.IsOpenAIModelProviderResponse() {
+				if p, ok := provider.GetOpenAIModelProviderResponse(); ok {
+					name, id, providerType = p.Name, p.ID.String(), "openai"
+				}
+			} else if provider.IsAnthropicModelProviderResponse() {
+				if p, ok := provider.GetAnthropicModelProviderResponse(); ok {
+					name, id, providerType = p.Name, p.ID.String(), "anthropic"
+				}
+			} else {
+				name, id, providerType = "Unknown", "Unknown", "unknown"
+			}
+
+			structured[i] = providerOutput{ID: id, Name: name, Type: providerType}
+			tableData[i] = map[string]any{"ID": id, "Name": name, "Type": providerType}
+		}
+
+		headers := []string{"ID", "Name", "Type"}
+		return util.FormatOutput(e.Output, structured, headers, tableData)
 	default:
 		return fmt.Errorf("failed to list model providers")
 	}
-	return nil
 }
 
 func (e *ModelProviderDeleteCommand) Run() error {

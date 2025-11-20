@@ -1,12 +1,15 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/arctir/devgraph-cli/pkg/config"
 	"github.com/arctir/devgraph-cli/pkg/util"
 	"github.com/fatih/color"
 	"github.com/golang-jwt/jwt/v5"
+	"gopkg.in/yaml.v3"
 )
 
 type ConfigCommand struct {
@@ -26,7 +29,7 @@ type ConfigCommand struct {
 
 // GetContextsCommand lists all available contexts
 type GetContextsCommand struct {
-	Output string `flag:"output,o" default:"table" help:"Output format: table, name."`
+	Output string `flag:"output,o" default:"table" help:"Output format: table, json, yaml, name."`
 }
 
 // CurrentContextCommand displays the current context
@@ -81,33 +84,83 @@ func (g *GetContextsCommand) Run() error {
 		return nil
 	}
 
+	// Get sorted context names
+	names := make([]string, 0, len(userConfig.Contexts))
+	for name := range userConfig.Contexts {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
 	if g.Output == "name" {
-		for name := range userConfig.Contexts {
+		for _, name := range names {
 			fmt.Println(name)
 		}
 		return nil
 	}
 
-	// Table output
-	headers := []string{"Current", "Name", "Cluster", "User", "Environment"}
-	data := make([]map[string]interface{}, 0, len(userConfig.Contexts))
+	// Build context data
+	type contextOutput struct {
+		Current     bool   `json:"current" yaml:"current"`
+		Name        string `json:"name" yaml:"name"`
+		Cluster     string `json:"cluster" yaml:"cluster"`
+		User        string `json:"user" yaml:"user"`
+		Environment string `json:"environment,omitempty" yaml:"environment,omitempty"`
+	}
 
-	for name, ctx := range userConfig.Contexts {
-		current := ""
-		if name == userConfig.CurrentContext {
-			current = "*"
+	contexts := make([]contextOutput, 0, len(userConfig.Contexts))
+	for _, name := range names {
+		ctx := userConfig.Contexts[name]
+
+		// Try to get email from user's claims
+		userDisplay := ctx.User
+		if user, ok := userConfig.Users[ctx.User]; ok && user.Claims != nil {
+			if email, ok := (*user.Claims)["email"].(string); ok && email != "" {
+				userDisplay = email
+			}
 		}
 
-		data = append(data, map[string]interface{}{
-			"Current":     current,
-			"Name":        name,
-			"Cluster":     ctx.Cluster,
-			"User":        ctx.User,
-			"Environment": ctx.Environment,
+		contexts = append(contexts, contextOutput{
+			Current:     name == userConfig.CurrentContext,
+			Name:        name,
+			Cluster:     ctx.Cluster,
+			User:        userDisplay,
+			Environment: ctx.Environment,
 		})
 	}
 
-	displayEntityTable(data, headers)
+	switch g.Output {
+	case "json":
+		output, err := json.MarshalIndent(contexts, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal JSON: %w", err)
+		}
+		fmt.Println(string(output))
+	case "yaml":
+		output, err := yaml.Marshal(contexts)
+		if err != nil {
+			return fmt.Errorf("failed to marshal YAML: %w", err)
+		}
+		fmt.Print(string(output))
+	default:
+		// Table output
+		headers := []string{"Current", "Name", "Cluster", "User", "Environment"}
+		data := make([]map[string]interface{}, 0, len(contexts))
+		for _, ctx := range contexts {
+			current := ""
+			if ctx.Current {
+				current = "*"
+			}
+			data = append(data, map[string]interface{}{
+				"Current":     current,
+				"Name":        ctx.Name,
+				"Cluster":     ctx.Cluster,
+				"User":        ctx.User,
+				"Environment": ctx.Environment,
+			})
+		}
+		displayEntityTable(data, headers)
+	}
+
 	return nil
 }
 

@@ -31,6 +31,7 @@ type TokenGet struct {
 
 type TokenList struct {
 	EnvWrapperCommand
+	Output string `short:"o" help:"Output format: table, json, yaml" default:"table"`
 }
 
 type TokenUpdate struct {
@@ -124,12 +125,55 @@ func (a *TokenList) Run() error {
 	switch r := response.(type) {
 	case *api.GetTokensOKApplicationJSON:
 		tokens := []api.ApiTokenResponse(*r)
-		displayTokens(&tokens)
+		if len(tokens) == 0 {
+			fmt.Println("No tokens found.")
+			return nil
+		}
+
+		type tokenOutput struct {
+			ID        string   `json:"id" yaml:"id"`
+			Name      string   `json:"name" yaml:"name"`
+			Scopes    []string `json:"scopes" yaml:"scopes"`
+			Token     string   `json:"token" yaml:"token"`
+			ExpiresAt string   `json:"expires_at,omitempty" yaml:"expires_at,omitempty"`
+		}
+
+		structured := make([]tokenOutput, len(tokens))
+		tableData := make([]map[string]any, len(tokens))
+		for i, token := range tokens {
+			expiresAt := "Never"
+			if expires, ok := token.ExpiresAt.Get(); ok && expires != "" {
+				expiresAt = expires
+			}
+
+			scopes := []string{}
+			scopesStr := "None"
+			if scopesArray, ok := token.Scopes.Get(); ok && len(scopesArray) > 0 {
+				scopes = scopesArray
+				scopesStr = strings.Join(scopesArray, ", ")
+			}
+
+			structured[i] = tokenOutput{
+				ID:        token.ID.String(),
+				Name:      token.Name,
+				Scopes:    scopes,
+				Token:     token.Token,
+				ExpiresAt: expiresAt,
+			}
+			tableData[i] = map[string]any{
+				"ID":         token.ID.String(),
+				"Name":       token.Name,
+				"Scopes":     scopesStr,
+				"Token":      token.Token,
+				"Expires At": expiresAt,
+			}
+		}
+
+		headers := []string{"ID", "Name", "Scopes", "Token", "Expires At"}
+		return util.FormatOutput(a.Output, structured, headers, tableData)
 	default:
 		return fmt.Errorf("failed to list tokens")
 	}
-
-	return nil
 }
 
 func (a *TokenGet) Run() error {

@@ -18,6 +18,7 @@ type SuggestionCommand struct {
 
 type SuggestionListCommand struct {
 	EnvWrapperCommand
+	Output string `short:"o" help:"Output format: table, json, yaml" default:"table"`
 }
 
 type SuggestionCreateCommand struct {
@@ -53,11 +54,36 @@ func (s *SuggestionListCommand) Run() error {
 			fmt.Println("No chat suggestions found.")
 			return nil
 		}
-		displaySuggestions(&suggestions)
+
+		type suggestionOutput struct {
+			ID     string `json:"id" yaml:"id"`
+			Title  string `json:"title" yaml:"title"`
+			Label  string `json:"label" yaml:"label"`
+			Action string `json:"action" yaml:"action"`
+		}
+
+		structured := make([]suggestionOutput, len(suggestions))
+		tableData := make([]map[string]any, len(suggestions))
+		for i, sug := range suggestions {
+			structured[i] = suggestionOutput{
+				ID:     sug.ID.String(),
+				Title:  sug.Title,
+				Label:  sug.Label,
+				Action: sug.Action,
+			}
+			tableData[i] = map[string]any{
+				"ID":     sug.ID.String(),
+				"Title":  sug.Title,
+				"Label":  sug.Label,
+				"Action": sug.Action,
+			}
+		}
+
+		headers := []string{"ID", "Title", "Label", "Action"}
+		return util.FormatOutput(s.Output, structured, headers, tableData)
 	default:
 		return fmt.Errorf("failed to list chat suggestions")
 	}
-	return nil
 }
 
 func (s *SuggestionCreateCommand) Run() error {

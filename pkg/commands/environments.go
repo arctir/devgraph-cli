@@ -24,11 +24,13 @@ func getDefaultEnvironment() (string, error) {
 
 type EnvironmentListCommand struct {
 	config.Config
+	Output string `short:"o" help:"Output format: table, json, yaml" default:"table"`
 }
 
 type EnvironmentUserListCommand struct {
 	EnvWrapperCommand
-	Invited bool `short:"i" help:"Show only pending invitations"`
+	Invited bool   `short:"i" help:"Show only pending invitations"`
+	Output  string `short:"o" help:"Output format: table, json, yaml" default:"table"`
 }
 
 type EnvironmentUserAddCommand struct {
@@ -91,8 +93,30 @@ func (e *EnvironmentListCommand) Run() error {
 		return nil
 	}
 
-	displayEnvironments(envs)
-	return nil
+	// Build structured data for json/yaml output
+	type envOutput struct {
+		ID   string `json:"id" yaml:"id"`
+		Name string `json:"name" yaml:"name"`
+		Slug string `json:"slug" yaml:"slug"`
+	}
+
+	structured := make([]envOutput, len(*envs))
+	tableData := make([]map[string]any, len(*envs))
+	for i, env := range *envs {
+		structured[i] = envOutput{
+			ID:   env.ID.String(),
+			Name: env.Name,
+			Slug: env.Slug,
+		}
+		tableData[i] = map[string]any{
+			"ID":   env.ID.String(),
+			"Name": env.Name,
+			"Slug": env.Slug,
+		}
+	}
+
+	headers := []string{"ID", "Name", "Slug"}
+	return util.FormatOutput(e.Output, structured, headers, tableData)
 }
 
 func displayEnvironments(envs *[]api.EnvironmentResponse) {
@@ -146,11 +170,36 @@ func (e *EnvironmentUserListCommand) Run() error {
 				fmt.Println("No pending invitations found in this environment.")
 				return nil
 			}
-			displayPendingInvitations(&invites)
+
+			type inviteOutput struct {
+				ID     string `json:"id" yaml:"id"`
+				Email  string `json:"email" yaml:"email"`
+				Role   string `json:"role" yaml:"role"`
+				Status string `json:"status" yaml:"status"`
+			}
+
+			structured := make([]inviteOutput, len(invites))
+			tableData := make([]map[string]any, len(invites))
+			for i, invite := range invites {
+				structured[i] = inviteOutput{
+					ID:     invite.ID,
+					Email:  invite.EmailAddress,
+					Role:   string(invite.Role),
+					Status: string(invite.Status),
+				}
+				tableData[i] = map[string]any{
+					"ID":     invite.ID,
+					"Email":  invite.EmailAddress,
+					"Role":   invite.Role,
+					"Status": invite.Status,
+				}
+			}
+
+			headers := []string{"ID", "Email", "Role", "Status"}
+			return util.FormatOutput(e.Output, structured, headers, tableData)
 		default:
 			return fmt.Errorf("failed to list pending invitations")
 		}
-		return nil
 	}
 
 	params := api.ListEnvironmentUsersParams{
@@ -169,11 +218,36 @@ func (e *EnvironmentUserListCommand) Run() error {
 			fmt.Println("No users found in this environment.")
 			return nil
 		}
-		displayEnvironmentUsers(&users)
+
+		type userOutput struct {
+			ID     string `json:"id" yaml:"id"`
+			Email  string `json:"email" yaml:"email"`
+			Role   string `json:"role" yaml:"role"`
+			Status string `json:"status" yaml:"status"`
+		}
+
+		structured := make([]userOutput, len(users))
+		tableData := make([]map[string]any, len(users))
+		for i, user := range users {
+			structured[i] = userOutput{
+				ID:     user.ID,
+				Email:  user.EmailAddress,
+				Role:   string(user.Role),
+				Status: string(user.Status),
+			}
+			tableData[i] = map[string]any{
+				"ID":     user.ID,
+				"Email":  user.EmailAddress,
+				"Role":   user.Role,
+				"Status": user.Status,
+			}
+		}
+
+		headers := []string{"ID", "Email", "Role", "Status"}
+		return util.FormatOutput(e.Output, structured, headers, tableData)
 	default:
 		return fmt.Errorf("failed to list environment users")
 	}
-	return nil
 }
 
 func (e *EnvironmentUserAddCommand) Run() error {

@@ -26,6 +26,7 @@ type ModelCreateCommand struct {
 
 type ModelListCommand struct {
 	EnvWrapperCommand
+	Output string `short:"o" help:"Output format: table, json, yaml" default:"table"`
 }
 
 type ModelGetCommand struct {
@@ -122,12 +123,33 @@ func (e *ModelListCommand) Run() error {
 			fmt.Println("No models found.")
 			return nil
 		}
-		displayModels(&models)
+
+		type modelOutput struct {
+			ID         string `json:"id" yaml:"id"`
+			Name       string `json:"name" yaml:"name"`
+			ProviderID string `json:"provider_id" yaml:"provider_id"`
+		}
+
+		structured := make([]modelOutput, len(models))
+		tableData := make([]map[string]any, len(models))
+		for i, model := range models {
+			structured[i] = modelOutput{
+				ID:         model.ID.String(),
+				Name:       model.Name,
+				ProviderID: model.ProviderID.String(),
+			}
+			tableData[i] = map[string]any{
+				"ID":          model.ID.String(),
+				"Name":        model.Name,
+				"Provider ID": model.ProviderID.String(),
+			}
+		}
+
+		headers := []string{"ID", "Name", "Provider ID"}
+		return util.FormatOutput(e.Output, structured, headers, tableData)
 	default:
 		return fmt.Errorf("failed to list models")
 	}
-
-	return nil
 }
 
 func (e *ModelDeleteCommand) Run() error {

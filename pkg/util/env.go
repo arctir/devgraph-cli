@@ -1,12 +1,8 @@
 package util
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"os"
-	"strconv"
-	"strings"
 
 	"github.com/arctir/devgraph-cli/pkg/config"
 	api "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
@@ -15,12 +11,16 @@ import (
 // NoEnvironmentError is returned when a user is not associated with any environments
 // in their Devgraph account. This typically happens for new users or users who
 // haven't been granted access to any environments.
-type NoEnvironmentError struct {
-}
+type NoEnvironmentError struct{}
 
 // Error returns the error message for NoEnvironmentError.
 func (e *NoEnvironmentError) Error() string {
-	return "User is not associated with any environments"
+	return "you don't have access to any environments"
+}
+
+// IsWarning indicates this error should be displayed as a warning, not an error.
+func (e *NoEnvironmentError) IsWarning() bool {
+	return true
 }
 
 // GetEnvironments retrieves all environments accessible to the authenticated user.
@@ -47,62 +47,26 @@ func GetEnvironments(config config.Config) (*[]api.EnvironmentResponse, error) {
 	}
 }
 
-// CheckEnvironment validates and ensures an environment is set in the config.
-// If no environment is set, it prompts the user to select from available environments.
-// Returns true if an environment was successfully set or validated, false otherwise.
-// This function may prompt the user for input if multiple environments are available.
-func CheckEnvironment(config *config.Config) (bool, error) {
-	if config.Environment != "" {
-		// Validate that the environment exists on the current API server
-		err := ValidateEnvironment(*config, config.Environment)
-		if err != nil {
-			fmt.Printf("Warning: Current environment '%s' is not valid for this API server. Clearing environment setting.\n", config.Environment)
-			config.Environment = ""
-			// Fall through to environment selection logic below
-		} else {
-			return true, nil
-		}
+// CheckEnvironment validates that an environment is set in user settings.
+// Returns true if an environment is configured, false otherwise.
+func CheckEnvironment(cfg *config.Config) (bool, error) {
+	userConfig, err := config.LoadUserConfig()
+	if err != nil {
+		return false, fmt.Errorf("failed to load user config: %w", err)
 	}
 
-	if config.Environment == "" {
-		envs, err := GetEnvironments(*config)
-		if err != nil {
-			return false, fmt.Errorf("failed to get environments: %w", err)
-		}
-
-		if envs == nil || len(*envs) == 0 {
-			return false, &NoEnvironmentError{}
-		}
-
-		if len(*envs) == 1 {
-			config.Environment = (*envs)[0].ID.String()
-			fmt.Printf("Only one environment available. Environment set to: %s\n", config.Environment)
-			return true, nil
-		}
-
-		fmt.Println("Environment not set. Available environments:")
-		for i, env := range *envs {
-			fmt.Printf("%d. %s - %s (ID: %s)\n", i+1, env.Name, env.Slug, env.ID)
-		}
-
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Enter the number of your choice: ")
-		input, _ := reader.ReadString('\n')
-		input = strings.TrimSpace(input)
-
-		// Convert input to integer
-		choice, err := strconv.Atoi(input)
-		if err != nil || choice < 1 || choice > len(*envs) {
-			fmt.Println("Invalid choice. Please enter a number between 1 and", len(*envs))
-			return false, fmt.Errorf("invalid environment choice")
-		}
-		// Set the selected environment in the config
-		config.Environment = (*envs)[choice-1].ID.String()
-		fmt.Printf("Environment set to: %s\n", config.Environment)
-		return true, nil
+	environment := userConfig.Settings.DefaultEnvironment
+	if environment == "" {
+		return false, fmt.Errorf("no environment configured. Run 'dg auth login' or 'dg config set-context <name> --env <env>' to set an environment")
 	}
 
-	return false, nil
+	// Validate that the environment exists
+	err = ValidateEnvironment(*cfg, environment)
+	if err != nil {
+		return false, fmt.Errorf("configured environment '%s' is invalid: %w. Run 'dg config set-context <name> --env <env>' to select a valid environment", environment, err)
+	}
+
+	return true, nil
 }
 
 // ValidateEnvironment checks if the given environment ID exists and is accessible
@@ -126,7 +90,7 @@ func ResolveEnvironmentUUID(config config.Config, environmentIdentifier string) 
 	}
 
 	if envs == nil || len(*envs) == 0 {
-		return "", fmt.Errorf("no environments available")
+		return "", &NoEnvironmentError{}
 	}
 
 	for _, env := range *envs {

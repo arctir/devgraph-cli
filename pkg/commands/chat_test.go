@@ -16,10 +16,9 @@ func TestChatCommand_Structure(t *testing.T) {
 func TestChatCommand_SlashCommands(t *testing.T) {
 	chatCmd := &Chat{
 		EnvWrapperCommand: EnvWrapperCommand{
-			Config: config.Config{
-				Model: "test-model",
-			},
+			Config: config.Config{},
 		},
+		Model: "test-model",
 	}
 	
 	// Test help command

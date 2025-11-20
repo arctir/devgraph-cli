@@ -78,7 +78,7 @@ func (m *OIDCTokenManager) Token() (*oauth2.Token, error) {
 	// Get the latest token from the underlying TokenSource
 	newToken, err := m.tokenSrc.Token()
 	if err != nil {
-		return nil, fmt.Errorf("failed to refresh token: %v", err)
+		return nil, fmt.Errorf("failed to refresh token: %w", err)
 	}
 
 	// Update stored token if it has changed

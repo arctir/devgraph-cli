@@ -83,7 +83,7 @@ func (e *MCPCreateCommand) Run() error {
 	
 	// Set optional fields if provided
 	if e.Description != "" {
-		request.Description = api.NewOptMCPEndpointCreateDescription(api.NewStringMCPEndpointCreateDescription(e.Description))
+		request.Description = api.NewOptNilString(e.Description)
 	}
 	if len(headers) > 0 {
 		request.Headers = api.NewOptMCPEndpointCreateHeaders(api.MCPEndpointCreateHeaders(headers))
@@ -99,9 +99,7 @@ func (e *MCPCreateCommand) Run() error {
 		if err != nil {
 			return fmt.Errorf("invalid OAuth service ID: %w", err)
 		}
-		request.OAuthServiceID = api.NewOptMCPEndpointCreateOAuthServiceID(
-			api.NewUUIDMCPEndpointCreateOAuthServiceID(oauthUUID),
-		)
+		request.OAuthServiceID = api.NewOptNilUUID(oauthUUID)
 	}
 
 	resp, err := client.CreateMcpendpoint(context.Background(), &request)
@@ -116,7 +114,7 @@ func (e *MCPCreateCommand) Run() error {
 		return fmt.Errorf("failed to create MCP endpoint")
 	}
 
-	fmt.Printf("MCP endpoint '%s' created successfully.\n", e.Name)
+	fmt.Printf("✅ MCP endpoint '%s' created successfully.\n", e.Name)
 
 	return nil
 }
@@ -141,25 +139,17 @@ func (e *MCPGetCommand) Run() error {
 	switch r := resp.(type) {
 	case *api.MCPEndpointResponse:
 		description := ""
-		if r.Description.IsSet() {
-			if desc, ok := r.Description.Get(); ok && desc.IsString() {
-				if s, ok := desc.GetString(); ok {
-					description = s
-				}
-			}
+		if desc, ok := r.Description.Get(); ok {
+			description = desc
+		} else if r.Description.IsNull() {
+			description = "(null)"
 		}
-		
+
 		oauthServiceID := ""
-		if r.OAuthServiceID.IsSet() {
-			if oauth, ok := r.OAuthServiceID.Get(); ok {
-				if oauth.IsUUID() {
-					if id, ok := oauth.GetUUID(); ok {
-						oauthServiceID = id.String()
-					}
-				} else if oauth.IsNull() {
-					oauthServiceID = "(null)"
-				}
-			}
+		if oauth, ok := r.OAuthServiceID.Get(); ok {
+			oauthServiceID = oauth.String()
+		} else if r.OAuthServiceID.IsNull() {
+			oauthServiceID = "(null)"
 		} else {
 			oauthServiceID = "(not set)"
 		}
@@ -197,16 +187,10 @@ func (e *MCPListCommand) Run() error {
 		data := make([]map[string]interface{}, len(endpoints))
 		for i, endpoint := range endpoints {
 			oauthServiceID := ""
-			if endpoint.OAuthServiceID.IsSet() {
-				if oauth, ok := endpoint.OAuthServiceID.Get(); ok {
-					if oauth.IsUUID() {
-						if id, ok := oauth.GetUUID(); ok {
-							oauthServiceID = id.String()
-						}
-					} else if oauth.IsNull() {
-						oauthServiceID = "(null)"
-					}
-				}
+			if oauth, ok := endpoint.OAuthServiceID.Get(); ok {
+				oauthServiceID = oauth.String()
+			} else if endpoint.OAuthServiceID.IsNull() {
+				oauthServiceID = "(null)"
 			} else {
 				oauthServiceID = "(not set)"
 			}
@@ -248,7 +232,7 @@ func (e *MCPDeleteCommand) Run() error {
 	default:
 		return fmt.Errorf("failed to delete MCP endpoint")
 	}
-	fmt.Printf("MCP endpoint with ID '%s' deleted successfully.\n", e.Id)
+	fmt.Printf("✅ MCP endpoint '%s' deleted successfully.\n", e.Id)
 	return nil
 }
 
@@ -293,49 +277,35 @@ func (e *MCPUpdateCommand) Run() error {
 
 	// Set fields that are provided
 	if e.Name != nil {
-		request.SetName(api.NewOptMCPEndpointUpdateName(
-			api.NewStringMCPEndpointUpdateName(*e.Name),
-		))
+		request.SetName(api.NewOptNilString(*e.Name))
 	}
-	
+
 	if e.Url != nil {
-		request.SetURL(api.NewOptMCPEndpointUpdateURL(
-			api.NewStringMCPEndpointUpdateURL(*e.Url),
-		))
+		request.SetURL(api.NewOptNilString(*e.Url))
 	}
-	
+
 	if e.Description != nil {
-		request.SetDescription(api.NewOptMCPEndpointUpdateDescription(
-			api.NewStringMCPEndpointUpdateDescription(*e.Description),
-		))
+		request.SetDescription(api.NewOptNilString(*e.Description))
 	}
-	
+
 	if len(headers) > 0 {
-		request.SetHeaders(api.NewOptMCPEndpointUpdateHeaders(
-			api.NewMCPEndpointUpdateHeaders0MCPEndpointUpdateHeaders(api.MCPEndpointUpdateHeaders0(headers)),
-		))
+		request.SetHeaders(api.NewOptNilMCPEndpointUpdateHeaders(api.MCPEndpointUpdateHeaders(headers)))
 	}
-	
+
 	if e.DevgraphAuth != nil {
-		request.SetDevgraphAuth(api.NewOptMCPEndpointUpdateDevgraphAuth(
-			api.NewBoolMCPEndpointUpdateDevgraphAuth(*e.DevgraphAuth),
-		))
+		request.SetDevgraphAuth(api.NewOptNilBool(*e.DevgraphAuth))
 	}
-	
+
 	if e.SupportsResources != nil {
-		request.SetSupportsResources(api.NewOptMCPEndpointUpdateSupportsResources(
-			api.NewBoolMCPEndpointUpdateSupportsResources(*e.SupportsResources),
-		))
+		request.SetSupportsResources(api.NewOptNilBool(*e.SupportsResources))
 	}
-	
+
 	if e.OAuthServiceID != nil {
 		oauthUUID, err := uuid.Parse(*e.OAuthServiceID)
 		if err != nil {
 			return fmt.Errorf("invalid OAuth service ID: %w", err)
 		}
-		request.SetOAuthServiceID(api.NewOptMCPEndpointUpdateOAuthServiceID(
-			api.NewUUIDMCPEndpointUpdateOAuthServiceID(oauthUUID),
-		))
+		request.SetOAuthServiceID(api.NewOptNilUUID(oauthUUID))
 	}
 
 	// Make the API call

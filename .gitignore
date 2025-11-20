@@ -1,5 +1,5 @@
-devgraph
-devgraph-cli
+dg
 coverage.*
 dist
 go.work*
+backups

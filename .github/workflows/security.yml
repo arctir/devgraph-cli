@@ -27,15 +27,8 @@ jobs:
           go-version: "1.24.6"
           cache: true
 
-      - name: Configure Git for private modules
-        env:
-          GITHUB_TOKEN: ${{ secrets.ARCTIR_GH_ACTIONS_TOKEN }}
-        run: git config --global url."https://x-oauth-basic:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com"
-
       - name: Install dependencies
         run: go mod download
-        env:
-          GOPRIVATE: github.com/arctir/*
 
       - name: Run Govulncheck
         run: |
@@ -80,19 +73,10 @@ jobs:
           go-version: "1.24.6"
           cache: true
 
-      - name: Configure Git for private modules
-        env:
-          GITHUB_TOKEN: ${{ secrets.ARCTIR_GH_ACTIONS_TOKEN }}
-        run: git config --global url."https://x-oauth-basic:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com"
-
       - name: Install dependencies
         run: go mod download
-        env:
-          GOPRIVATE: github.com/arctir/*
 
       - name: Run Gosec Security Scanner
         uses: securego/gosec@master
-        env:
-          GITHUB_AUTHENTICATION_TOKEN: ${{ secrets.ARCTIR_GH_ACTIONS_TOKEN }}
         with:
           args: ./...

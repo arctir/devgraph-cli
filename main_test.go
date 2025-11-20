@@ -9,11 +9,10 @@ import (
 
 func TestCLIStructure(t *testing.T) {
 	cli := CLI{}
-	
+
 	// Test that all expected commands are available
 	assert.NotNil(t, &cli.Chat, "Chat command should be available")
 	assert.NotNil(t, &cli.Auth, "Auth command should be available")
-	assert.NotNil(t, &cli.Setup, "Setup command should be available")
 	assert.NotNil(t, &cli.Config, "Config command should be available")
 	assert.NotNil(t, &cli.Token, "Token command should be available")
 	assert.NotNil(t, &cli.Environment, "Environment command should be available")
@@ -22,7 +21,8 @@ func TestCLIStructure(t *testing.T) {
 	assert.NotNil(t, &cli.MCP, "MCP command should be available")
 	assert.NotNil(t, &cli.ModelProvider, "ModelProvider command should be available")
 	assert.NotNil(t, &cli.Model, "Model command should be available")
-	assert.NotNil(t, &cli.Admin, "Admin command should be available")
+	assert.NotNil(t, &cli.Provider, "Provider command should be available")
+	assert.NotNil(t, &cli.Subscription, "Subscription command should be available")
 }
 
 func TestMain_Integration(t *testing.T) {
@@ -48,7 +48,6 @@ func TestCLIHelpDescriptions(t *testing.T) {
 	}{
 		{"chat", "interactive chat"},
 		{"auth", "authentication"},
-		{"setup", "setup"},
 		{"config", "configuration settings"},
 		{"token", "tokens"},
 		{"env", "environments"},
@@ -58,12 +57,12 @@ func TestCLIHelpDescriptions(t *testing.T) {
 		{"modelprovider", "modelprovider"},
 		{"model", "Model resources"},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// This is a basic test to ensure help text contains expected keywords
 			// In a real CLI test, you'd capture help output and verify it
-			assert.Contains(t, strings.ToLower(tc.description), tc.name, 
+			assert.Contains(t, strings.ToLower(tc.description), tc.name,
 				"Help description should contain command name or related terms")
 		})
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -31,7 +30,7 @@ func getWellKnownEndpoints(issuerURL string) (*WellKnownConfig, error) {
 	// Parse the issuer URL
 	u, err := url.Parse(issuerURL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid issuer URL: %v", err)
+		return nil, fmt.Errorf("invalid issuer URL: %w", err)
 	}
 
 	// Append the well-known path
@@ -40,7 +39,7 @@ func getWellKnownEndpoints(issuerURL string) (*WellKnownConfig, error) {
 	// Make the HTTP request
 	resp, err := http.Get(u.String())
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch well-known config: %v", err)
+		return nil, fmt.Errorf("failed to fetch well-known config: %w", err)
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
@@ -51,7 +50,7 @@ func getWellKnownEndpoints(issuerURL string) (*WellKnownConfig, error) {
 	// Decode the JSON response
 	var config WellKnownConfig
 	if err := json.NewDecoder(resp.Body).Decode(&config); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %v", err)
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	return &config, nil
@@ -89,7 +88,7 @@ func Logout(config config.Config) error {
 
 	// Try to call the OIDC end session endpoint if available
 	if endSessionURL := getEndSessionEndpoint(wellKnown); endSessionURL != "" {
-		err := callEndSessionEndpoint(endSessionURL, creds.IDToken, config.RedirectURL)
+		err := callEndSessionEndpoint(endSessionURL, creds.IDToken, DefaultRedirectURL)
 		if err != nil {
 			fmt.Printf("Warning: OIDC logout failed: %v\n", err)
 			fmt.Println("Clearing local credentials anyway...")
@@ -108,7 +107,7 @@ func Logout(config config.Config) error {
 func ClearCredentials() error {
 	userConfig, err := config.LoadUserConfig()
 	if err != nil {
-		return fmt.Errorf("failed to load user config: %v", err)
+		return fmt.Errorf("failed to load user config: %w", err)
 	}
 
 	// Clear credentials
@@ -116,7 +115,7 @@ func ClearCredentials() error {
 
 	err = config.SaveUserConfig(userConfig)
 	if err != nil {
-		return fmt.Errorf("failed to save cleared credentials: %v", err)
+		return fmt.Errorf("failed to save cleared credentials: %w", err)
 	}
 
 	fmt.Println("Local credentials cleared.")
@@ -172,7 +171,7 @@ func callEndSessionEndpoint(endSessionURL, idToken, redirectURL string) error {
 func GetCurrentUser() (*UserInfo, error) {
 	creds, err := LoadCredentials()
 	if err != nil {
-		return nil, fmt.Errorf("failed to load credentials: %v", err)
+		return nil, fmt.Errorf("failed to load credentials: %w", err)
 	}
 
 	if creds.IDToken == "" {
@@ -249,7 +248,7 @@ func Authenticate(a config.Config) (*oauth2.Token, error) {
 	// Configure OAuth2 with PKCE
 	oauth2Config := oauth2.Config{
 		ClientID:    a.ClientID,
-		RedirectURL: a.RedirectURL,
+		RedirectURL: DefaultRedirectURL,
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  providerConfig.AuthorizationEndpoint,
 			TokenURL: providerConfig.TokenEndpoint,
@@ -265,11 +264,96 @@ func Authenticate(a config.Config) (*oauth2.Token, error) {
 	// Set up oauth2cli configuration
 	cliConfig := oauth2cli.Config{
 		OAuth2Config:           oauth2Config,
-		LocalServerBindAddress: []string{"0.0.0.0:8080"},
+		LocalServerBindAddress: []string{"0.0.0.0:40000", "0.0.0.0:40001", "0.0.0.0:40002", "0.0.0.0:40003", "0.0.0.0:40004", "0.0.0.0:40005"},
 
 		AuthCodeOptions:      pkce.AuthCodeOptions(),
 		TokenRequestOptions:  pkce.TokenRequestOptions(),
 		LocalServerReadyChan: ready,
+		LocalServerSuccessHTML: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devgraph - Authentication Successful</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #070d17;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 48px;
+            text-align: center;
+            max-width: 420px;
+            width: 100%;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 32px;
+            letter-spacing: -0.5px;
+        }
+        .success-icon {
+            width: 64px;
+            height: 64px;
+            background: #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+        }
+        .success-icon svg {
+            width: 32px;
+            height: 32px;
+            fill: white;
+        }
+        h1 {
+            color: #ffffff;
+            font-size: 24px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+        .close-hint {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">Devgraph</div>
+        <div class="success-icon">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+        </div>
+        <h1>Authentication Successful</h1>
+        <p>You have successfully signed in to Devgraph.</p>
+        <p class="close-hint">You can close this window and return to your terminal.</p>
+    </div>
+</body>
+</html>`,
 		//Logf:                 log.Printf,
 	}
 
@@ -277,10 +361,17 @@ func Authenticate(a config.Config) (*oauth2.Token, error) {
 	eg.Go(func() error {
 		select {
 		case url := <-ready:
-			log.Printf("Open %s", url)
+			fmt.Println("\n" + "============================================================")
+			fmt.Println("🔐 Devgraph Authentication")
+			fmt.Println("============================================================")
+			fmt.Println("Opening browser for authentication...")
+			fmt.Printf("URL: %s\n", url)
 			if err := browser.OpenURL(url); err != nil {
-				log.Printf("could not open the browser: %s", err)
+				fmt.Printf("⚠️  Could not open browser automatically: %s\n", err)
+				fmt.Println("Please open the URL above manually in your browser.")
 			}
+			fmt.Println("⏳ Waiting for authentication to complete...")
+			fmt.Println()
 			return nil
 		case <-ctx.Done():
 			return fmt.Errorf("context done while waiting for authorization: %w", ctx.Err())

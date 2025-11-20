@@ -1,5 +1,8 @@
 # Devgraph CLI
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/arctir/devgraph-cli)](https://goreportcard.com/report/github.com/arctir/devgraph-cli)
+
 > Turn chaos into clarity
 
 A command-line interface for interacting with Devgraph, providing AI-powered chat, authentication, and resource management capabilities.
@@ -53,42 +56,79 @@ make build BINARY_NAME=my-devgraph-tool
 
 ## Usage
 
-### Basic Commands
+### Getting Started
 
 ```bash
+# Authenticate with your Devgraph account (also configures your environment)
+dg auth login
+
 # Start an interactive chat with AI
-devgraph chat
+dg chat
+```
 
-# Authenticate your client
-devgraph auth
+### Resource Management
 
-# Manage tokens
-devgraph token list
-devgraph token create
+```bash
+# Environments
+dg env list
+dg env create
 
-# Manage environments
-devgraph env list
-devgraph env create
+# API tokens
+dg token list
+dg token create
 
-# Manage MCP resources
-devgraph mcp list
+# Entities
+dg entity list
+dg entity get <name>
 
-# Manage model providers
-devgraph modelprovider list
+# Entity definitions
+dg entitydefinition list
 
-# Manage models
-devgraph model list
+# MCP resources
+dg mcp list
+
+# Models
+dg model list
+
+# Model providers
+dg modelprovider list
+
+# Discovery providers
+dg provider list
+
+# OAuth services
+dg oauthservice list
+
+# Subscriptions
+dg subscription list
+```
+
+### Configuration
+
+```bash
+# View current context
+dg config current-context
+
+# List contexts
+dg config get-contexts
+
+# Switch context
+dg config use-context <name>
 ```
 
 ### Getting Help
 
 ```bash
 # Show all available commands
-devgraph --help
+dg --help
 
 # Get help for a specific command
-devgraph chat --help
-devgraph auth --help
+dg chat --help
+dg auth --help
+
+# Generate shell completions
+dg completion bash
+dg completion zsh
 ```
 
 ## Development

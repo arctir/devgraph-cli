@@ -9,10 +9,11 @@ import (
 
 func TestNoEnvironmentError(t *testing.T) {
 	err := &NoEnvironmentError{}
-	expected := "User is not associated with any environments"
-	
+	expected := "you don't have access to any environments"
+
 	assert.Equal(t, expected, err.Error())
 	assert.Implements(t, (*error)(nil), err)
+	assert.True(t, err.IsWarning())
 }
 
 func TestGetEnvironments_InvalidConfig(t *testing.T) {
@@ -31,15 +32,14 @@ func TestGetEnvironments_InvalidConfig(t *testing.T) {
 func TestCheckEnvironment_WithValidEnvironment(t *testing.T) {
 	// Test scenario where environment is already set
 	testConfig := &config.Config{
-		Environment: "existing-env-id",
-		ApiURL:      "https://api.example.com",
-		IssuerURL:   "https://issuer.example.com",
-		ClientID:    "test-client",
+		ApiURL:    "https://api.example.com",
+		IssuerURL: "https://issuer.example.com",
+		ClientID:  "test-client",
 	}
 
 	// This will fail due to network call, but we can test the logic structure
 	result, err := CheckEnvironment(testConfig)
-	
+
 	// Should return error due to invalid credentials/network, but not panic
 	assert.Error(t, err)
 	assert.False(t, result)

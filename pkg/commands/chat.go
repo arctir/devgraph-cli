@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/chroma/v2/quick"
+	"github.com/arctir/devgraph-cli/pkg/config"
 	"github.com/arctir/devgraph-cli/pkg/util"
 	"github.com/charmbracelet/glamour"
 	"github.com/fatih/color"
@@ -20,6 +22,9 @@ import (
 
 type Chat struct {
 	EnvWrapperCommand
+	Model     string `kong:"short='m',help='Chat model to use'"`
+	MaxTokens int    `kong:"default=1000,short='t',help='Maximum number of tokens in response'"`
+	Stream    bool   `kong:"short='s',help='Enable streaming mode for real-time responses'"`
 }
 
 var cyan = color.New(color.FgCyan).SprintFunc()
@@ -94,6 +99,146 @@ func formatTextWithSyntaxHighlighting(text string) string {
 	})
 
 	return result
+}
+
+// streamResponse handles true SSE streaming with real-time output
+func streamResponse(stream *openai.ChatCompletionStream, debug bool) (string, error) {
+	// Show typing indicator briefly
+	fmt.Print(gray("● "))
+	time.Sleep(200 * time.Millisecond)
+	fmt.Print("\r                    \r") // Clear the line completely
+
+	var fullResponse strings.Builder
+	var currentReasoning strings.Builder
+	var reasoningList []string
+	var actualResponse strings.Builder
+	var inReasoning bool
+	startTime := time.Now()
+	chunkCount := 0
+
+	// Reset reasoning state for new request
+	reasoningDisplayed = false
+
+	for {
+		// This call should block until the next SSE chunk arrives
+		response, err := stream.Recv()
+		chunkCount++
+
+		if err != nil {
+			if err == io.EOF {
+				// Handle any remaining reasoning content
+				if inReasoning && currentReasoning.Len() > 0 {
+					reasoningText := strings.TrimSpace(currentReasoning.String())
+					if reasoningText != "" {
+						reasoningList = append(reasoningList, reasoningText)
+						updateReasoningDisplay(reasoningList)
+					}
+				}
+
+				// Add separator line after reasoning if we had any
+				if reasoningDisplayed {
+					fmt.Println()
+				}
+
+				if debug {
+					fmt.Printf("[EOF after %d chunks]\n", chunkCount-1)
+
+					// Debug: show what we actually collected
+					fmt.Printf("[FINAL RESPONSE LENGTH: %d]\n", fullResponse.Len())
+					if fullResponse.Len() > 0 {
+						content := fullResponse.String()
+						fmt.Printf("[FINAL CONTENT: %q]\n", content)
+					}
+
+					// Show streaming stats for debugging
+					elapsed := time.Since(startTime)
+					fmt.Printf("\n%s Received %d chunks over %v\n", gray("ℹ"), chunkCount-1, elapsed)
+				}
+
+				fmt.Println()
+				fmt.Println()
+				break
+			}
+			return "", fmt.Errorf("error reading stream: %w", err)
+		}
+
+		if debug {
+			// Debug: show the full response structure
+			fmt.Printf("[CHUNK %d: Choices=%d", chunkCount, len(response.Choices))
+			if len(response.Choices) > 0 {
+				choice := response.Choices[0]
+				fmt.Printf(", Delta.Content=%q, Delta.Role=%q, FinishReason=%q",
+					choice.Delta.Content, choice.Delta.Role, choice.FinishReason)
+
+				// Check if there are function calls or other fields
+				if choice.Delta.FunctionCall != nil {
+					fmt.Printf(", FunctionCall=%v", choice.Delta.FunctionCall)
+				}
+				if choice.Delta.ToolCalls != nil {
+					fmt.Printf(", ToolCalls=%v", choice.Delta.ToolCalls)
+				}
+			}
+
+			// Also debug the raw response
+			fmt.Printf(", ID=%q, Object=%q", response.ID, response.Object)
+			fmt.Printf("]\n")
+		}
+
+		if len(response.Choices) > 0 {
+			delta := response.Choices[0].Delta.Content
+			if delta != "" {
+				fullResponse.WriteString(delta)
+
+				// Process character by character to detect reasoning blocks
+				for _, char := range delta {
+					if char == '*' {
+						if inReasoning {
+							// End of reasoning block
+							reasoningText := strings.TrimSpace(currentReasoning.String())
+							if reasoningText != "" {
+								reasoningList = append(reasoningList, reasoningText)
+								updateReasoningDisplay(reasoningList)
+							}
+							currentReasoning.Reset()
+							inReasoning = false
+						} else {
+							// Start of reasoning block
+							inReasoning = true
+						}
+					} else if inReasoning {
+						// Accumulate reasoning content
+						currentReasoning.WriteRune(char)
+					} else {
+						// Regular response content
+						actualResponse.WriteRune(char)
+						fmt.Print(string(char))
+					}
+				}
+			}
+		}
+	}
+
+	return fullResponse.String(), nil
+}
+
+var reasoningDisplayed bool
+
+// updateReasoningDisplay shows the current reasoning steps
+func updateReasoningDisplay(reasoningList []string) {
+	if len(reasoningList) == 0 {
+		return
+	}
+
+	if !reasoningDisplayed {
+		// First reasoning - show header and reserve space
+		fmt.Printf("\n%s %s\n", blue("🤔"), gray("Reasoning:"))
+		reasoningDisplayed = true
+	}
+
+	// For now, just append new reasoning steps (simpler approach)
+	// We'll only show the latest reasoning step to avoid clutter
+	latestReasoning := reasoningList[len(reasoningList)-1]
+	fmt.Printf("%s %s %s\n", gray("  "), blue(fmt.Sprintf("%d.", len(reasoningList))), gray(latestReasoning))
 }
 
 // Enhanced typewriter with word-by-word printing
@@ -288,10 +433,82 @@ func (*Chat) BeforeApply() error {
 	return nil
 }
 
+// promptForModel fetches available models and prompts user to select one
+func promptForModel(cfg config.Config) (string, error) {
+	fmt.Println("🤖 No model configured. Let's set one up...")
+
+	models, err := util.GetModels(cfg)
+	if err != nil {
+		return "", fmt.Errorf("failed to get models: %w", err)
+	}
+
+	if models == nil || len(*models) == 0 {
+		return "", fmt.Errorf("no models available")
+	}
+
+	userConfig, err := config.LoadUserConfig()
+	if err != nil {
+		userConfig = &config.UserConfig{}
+	}
+
+	// Auto-select if only one model
+	if len(*models) == 1 {
+		model := (*models)[0]
+		userConfig.Settings.DefaultModel = model.Name
+		if err := config.SaveUserConfig(userConfig); err != nil {
+			return "", err
+		}
+		fmt.Printf("✅ Model set to: %s\n\n", model.Name)
+		return model.Name, nil
+	}
+
+	// Prompt user to select
+	fmt.Println("Available models:")
+	for i, model := range *models {
+		fmt.Printf("  %d. %s\n", i+1, model.Name)
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Print("\nSelect a model (enter number): ")
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+
+		choice, err := strconv.Atoi(input)
+		if err != nil || choice < 1 || choice > len(*models) {
+			fmt.Printf("Invalid choice. Please enter a number between 1 and %d.\n", len(*models))
+			continue
+		}
+
+		selectedModel := (*models)[choice-1]
+		userConfig.Settings.DefaultModel = selectedModel.Name
+		if err := config.SaveUserConfig(userConfig); err != nil {
+			return "", err
+		}
+		fmt.Printf("✅ Model set to: %s\n\n", selectedModel.Name)
+		return selectedModel.Name, nil
+	}
+}
+
 func (c *Chat) Run() error {
-	// Validate that a model is configured
+	// Apply user settings for defaults
+	userConfig, err := config.LoadUserConfig()
+	if err == nil {
+		if c.Model == "" && userConfig.Settings.DefaultModel != "" {
+			c.Model = userConfig.Settings.DefaultModel
+		}
+		if c.MaxTokens == 1000 && userConfig.Settings.DefaultMaxTokens > 0 {
+			c.MaxTokens = userConfig.Settings.DefaultMaxTokens
+		}
+	}
+
+	// Validate that a model is configured, prompt if not
 	if c.Model == "" {
-		return fmt.Errorf("no model configured. Run 'devgraph setup' to configure a model, or use the -m flag to specify one")
+		model, err := promptForModel(c.Config)
+		if err != nil {
+			return fmt.Errorf("no model configured: %w", err)
+		}
+		c.Model = model
 	}
 
 	authHttpClient, err := util.GetAuthenticatedHTTPClient(c.Config)
@@ -318,7 +535,7 @@ func (c *Chat) Run() error {
 	} else {
 		fmt.Print(boldCyan(smallHeader))
 	}
-	fmt.Printf("\n%s Welcome to %s! \n", cyan("✨"), bold(cyan("devgraph")))
+	fmt.Printf("\n%s Welcome to %s! \n", cyan("✨"), bold(cyan("Devgraph")))
 	fmt.Printf("%s Type %s to quit, %s to change model, or %s for commands.\n\n",
 		gray("   "), yellow("'/exit'"), yellow("'/model'"), yellow("'/help'"))
 
@@ -353,41 +570,65 @@ func (c *Chat) Run() error {
 			Content: input,
 		})
 
-		// Show thinking indicator while making API call
-		go showThinkingIndicator()
+		devgraphPrompt()
 
-		resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-			Model:     c.Model,
-			Messages:  messages,
-			MaxTokens: c.MaxTokens,
-		})
+		var aiResponse string
+		if c.Stream {
+			// Streaming mode
+			stream, err := client.CreateChatCompletionStream(ctx, openai.ChatCompletionRequest{
+				Model:     c.Model,
+				Messages:  messages,
+				MaxTokens: c.MaxTokens,
+				Stream:    true,
+			})
 
-		if err != nil {
-			devgraphPrompt()
-			// Extract just the relevant error message without verbose context
-			errorMsg := extractErrorMessage(err.Error())
-			fmt.Printf("%s %s\n\n", red("✖"), red(fmt.Sprintf("Error: %s", errorMsg)))
-			continue
-		}
+			if err != nil {
+				// Extract just the relevant error message without verbose context
+				errorMsg := extractErrorMessage(err.Error())
+				fmt.Printf("%s %s\n\n", red("✖"), red(fmt.Sprintf("Error: %s", errorMsg)))
+				continue
+			}
+			defer stream.Close()
 
-		if len(resp.Choices) == 0 {
-			devgraphPrompt()
-			fmt.Printf("%s %s\n\n", yellow("⚠"), yellow("No response generated"))
-			continue
-		}
+			response, err := streamResponse(stream, c.Config.Debug)
+			if err != nil {
+				errorMsg := extractErrorMessage(err.Error())
+				fmt.Printf("%s %s\n\n", red("✖"), red(fmt.Sprintf("Error: %s", errorMsg)))
+				continue
+			}
+			aiResponse = response
+		} else {
+			// Non-streaming mode (original behavior)
+			// Show thinking indicator while making API call
+			go showThinkingIndicator()
 
-		for _, choice := range resp.Choices {
-			aiResponse := choice.Message.Content
-			devgraphPrompt()
+			resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+				Model:     c.Model,
+				Messages:  messages,
+				MaxTokens: c.MaxTokens,
+			})
 
+			if err != nil {
+				// Extract just the relevant error message without verbose context
+				errorMsg := extractErrorMessage(err.Error())
+				fmt.Printf("%s %s\n\n", red("✖"), red(fmt.Sprintf("Error: %s", errorMsg)))
+				continue
+			}
+
+			if len(resp.Choices) == 0 {
+				fmt.Printf("%s %s\n\n", yellow("⚠"), yellow("No response generated"))
+				continue
+			}
+
+			aiResponse = resp.Choices[0].Message.Content
 			// Use enhanced formatting for the response
 			formatResponse(aiResponse)
-
-			messages = append(messages, openai.ChatCompletionMessage{
-				Role:    openai.ChatMessageRoleAssistant,
-				Content: aiResponse,
-			})
 		}
+
+		messages = append(messages, openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleAssistant,
+			Content: aiResponse,
+		})
 	}
 
 	return nil
@@ -436,7 +677,7 @@ func (c *Chat) changeModel() error {
 	// Display models with current one highlighted
 	for i, model := range *models {
 		if model.Name == c.Model {
-			fmt.Printf("  %s %s %s\n", green("✓"), blue(fmt.Sprintf("%d.", i+1)),
+			fmt.Printf("  %s %s %s\n", green("✅"), blue(fmt.Sprintf("%d.", i+1)),
 				boldCyan(model.Name+" "+gray("(current)")))
 		} else {
 			fmt.Printf("    %s %s\n", blue(fmt.Sprintf("%d.", i+1)), model.Name)

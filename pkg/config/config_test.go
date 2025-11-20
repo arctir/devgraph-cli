@@ -21,28 +21,20 @@ func TestLoadConfig(t *testing.T) {
 			configContent: `apiurl: https://api.example.com
 issuerurl: https://issuer.example.com
 clientid: test-client-id
-redirecturl: http://localhost:3000/callback
-environment: test
-model: gpt-4
-maxtokens: 2000`,
+debug: true`,
 			expected: &Config{
-				ApiURL:      "https://api.example.com",
-				IssuerURL:   "https://issuer.example.com",
-				ClientID:    "test-client-id",
-				RedirectURL: "http://localhost:3000/callback",
-				Environment: "test",
-				Model:       "gpt-4",
-				MaxTokens:   2000,
+				ApiURL:    "https://api.example.com",
+				IssuerURL: "https://issuer.example.com",
+				ClientID:  "test-client-id",
+				Debug:     true,
 			},
 			expectError: false,
 		},
 		{
 			name: "partial config",
-			configContent: `apiurl: https://api.example.com
-model: gpt-3.5-turbo`,
+			configContent: `apiurl: https://api.example.com`,
 			expected: &Config{
 				ApiURL: "https://api.example.com",
-				Model:  "gpt-3.5-turbo",
 			},
 			expectError: false,
 		},
@@ -87,13 +79,10 @@ func TestSaveConfig(t *testing.T) {
 	configFile := filepath.Join(tmpDir, "test-config.yaml")
 
 	config := &Config{
-		ApiURL:      "https://api.test.com",
-		IssuerURL:   "https://issuer.test.com",
-		ClientID:    "test-client",
-		RedirectURL: "http://localhost:8080/callback",
-		Environment: "test",
-		Model:       "gpt-4",
-		MaxTokens:   1500,
+		ApiURL:    "https://api.test.com",
+		IssuerURL: "https://issuer.test.com",
+		ClientID:  "test-client",
+		Debug:     true,
 	}
 
 	err := SaveConfig(configFile, config)
@@ -112,7 +101,6 @@ func TestSaveConfig_CreateDirectory(t *testing.T) {
 
 	config := &Config{
 		ApiURL: "https://api.test.com",
-		Model:  "gpt-3.5-turbo",
 	}
 
 	err := SaveConfig(configFile, config)
@@ -125,45 +113,15 @@ func TestSaveConfig_CreateDirectory(t *testing.T) {
 	assert.Equal(t, config, loadedConfig)
 }
 
-func TestUserConfig(t *testing.T) {
-	// Test ApplyUserSettings
-	config := &Config{
-		Environment: "",
-		Model:       "",
-		MaxTokens:   1000,
-	}
-
-	userSettings := &UserSettings{
+func TestUserSettings(t *testing.T) {
+	// Test UserSettings struct
+	settings := UserSettings{
 		DefaultEnvironment: "production",
 		DefaultModel:       "gpt-4",
 		DefaultMaxTokens:   2000,
 	}
 
-	config.ApplyUserSettings(userSettings)
-
-	assert.Equal(t, "production", config.Environment)
-	assert.Equal(t, "gpt-4", config.Model)
-	assert.Equal(t, 2000, config.MaxTokens)
-}
-
-func TestApplyUserSettings_NoOverrideIfSet(t *testing.T) {
-	// Test that user settings don't override explicit command line values
-	userSettings := &UserSettings{
-		DefaultEnvironment: "production",
-		DefaultModel:       "gpt-4",
-		DefaultMaxTokens:   2000,
-	}
-
-	config := &Config{
-		Environment: "development",   // Already set
-		Model:       "gpt-3.5-turbo", // Different from default
-		MaxTokens:   500,             // Different from default
-	}
-
-	config.ApplyUserSettings(userSettings)
-
-	// Should not override since values are not defaults
-	assert.Equal(t, "development", config.Environment)
-	assert.Equal(t, "gpt-3.5-turbo", config.Model)
-	assert.Equal(t, 500, config.MaxTokens)
+	assert.Equal(t, "production", settings.DefaultEnvironment)
+	assert.Equal(t, "gpt-4", settings.DefaultModel)
+	assert.Equal(t, 2000, settings.DefaultMaxTokens)
 }

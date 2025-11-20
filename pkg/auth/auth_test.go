@@ -12,9 +12,8 @@ import (
 
 func TestAuthenticatedClient_InvalidIssuerURL(t *testing.T) {
 	c := config.Config{
-		IssuerURL:   "https://test.example.com",
-		ClientID:    "test-client",
-		RedirectURL: "http://localhost:8080/callback",
+		IssuerURL: "https://test.example.com",
+		ClientID:  "test-client",
 	}
 
 	client, err := AuthenticatedClient(c)
@@ -26,10 +25,8 @@ func TestAuthenticatedClient_InvalidIssuerURL(t *testing.T) {
 
 func TestAuthenticatedClient_InvalidCredentials(t *testing.T) {
 	c := config.Config{
-		IssuerURL:   "https://test.example.com",
-		ClientID:    "test-client",
-		RedirectURL: "http://localhost:8080/callback",
-		Environment: "test-env",
+		IssuerURL: "https://test.example.com",
+		ClientID:  "test-client",
 	}
 
 	client, err := AuthenticatedClient(c)

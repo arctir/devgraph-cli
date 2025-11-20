@@ -10,11 +10,8 @@ type EnvWrapperCommand struct {
 }
 
 func (e *EnvWrapperCommand) BeforeApply() error {
-	// Load and apply user settings
-	userConfig, err := config.LoadUserConfig()
-	if err == nil {
-		e.ApplyUserSettings(&userConfig.Settings)
-	}
+	// Apply defaults from environment config map
+	e.Config.ApplyDefaults()
 
 	// Skip environment check if not authenticated
 	// This allows commands to proceed and let main.go handle first-time setup

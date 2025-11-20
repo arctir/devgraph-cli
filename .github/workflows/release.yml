@@ -24,15 +24,8 @@ jobs:
           go-version: "1.24" # Match your project's Go version
           cache: true
 
-      - name: Configure Git for private modules
-        env:
-          GITHUB_TOKEN: ${{ secrets.ARCTIR_GH_ACTIONS_TOKEN }}
-        run: git config --global url."https://x-oauth-basic:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com"
-        
       - name: Install dependencies
         run: go mod download
-        env:
-          GOPRIVATE: github.com/arctir/*
 
       - name: Run tests
         run: make test
@@ -59,11 +52,6 @@ jobs:
           go-version: "1.24" # Match your project's Go version  
           cache: true # Cache Go modules for faster builds
 
-      - name: Configure Git for private modules
-        env:
-          GITHUB_TOKEN: ${{ secrets.ARCTIR_GH_ACTIONS_TOKEN }}
-        run: git config --global url."https://x-oauth-basic:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com"
-
       # Run GoReleaser to build and release
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
@@ -73,7 +61,6 @@ jobs:
           args: release --clean # Build and publish, clean build dir after
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Auth for GitHub Releases
-          GOPRIVATE: github.com/arctir/*
 
       # Optional: Print release URL (for debugging or logs)
       - name: Print Release URL

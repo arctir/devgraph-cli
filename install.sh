@@ -7,7 +7,7 @@ set -e
 
 # Configuration
 REPO="arctir/devgraph-cli"
-BINARY_NAME="devgraph"
+BINARY_NAME="dg"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 
 # Colors for output

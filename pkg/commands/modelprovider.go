@@ -18,7 +18,7 @@ type ModelProviderCommand struct {
 
 type ModelProviderCreateCommand struct {
 	EnvWrapperCommand
-	Type    string `arg:"" enum:"openai,xai" required:"" help:"Type of the ModelProvider resource to create (e.g., 'openai')."`
+	Type    string `arg:"" enum:"openai,xai,anthropic" required:"" help:"Type of the ModelProvider resource to create (e.g., 'openai')."`
 	Name    string `arg:"" required:"" help:"Name of the ModelProvider resource to create."`
 	ApiKey  string `arg:"" required:"" help:"API key for the ModelProvider resource."`
 	Default *bool  `arg:"" optional:"" help:"Set this ModelProvider as the default for the project."`
@@ -68,6 +68,17 @@ func (e *ModelProviderCreateCommand) Run() error {
 			provider.Default = api.NewOptBool(*e.Default)
 		}
 		data = api.NewXAIModelProviderCreateModelProviderCreateData(provider)
+	case "anthropic":
+		provider := api.AnthropicModelProviderCreate{
+			Type:   "anthropic",
+			Name:   e.Name,
+			APIKey: e.ApiKey,
+		}
+		// Set optional fields if provided
+		if e.Default != nil {
+			provider.Default = api.NewOptBool(*e.Default)
+		}
+		data = api.NewAnthropicModelProviderCreateModelProviderCreateData(provider)
 	default:
 		return fmt.Errorf("unsupported model provider type: %s", e.Type)
 	}
@@ -85,7 +96,7 @@ func (e *ModelProviderCreateCommand) Run() error {
 	// Check the response type
 	switch response.(type) {
 	case *api.ModelProviderResponse:
-		fmt.Printf("Model provider '%s' created successfully.\n", e.Name)
+		fmt.Printf("✅ Model provider '%s' created successfully.\n", e.Name)
 	default:
 		return fmt.Errorf("failed to create model provider")
 	}
@@ -169,7 +180,7 @@ func (e *ModelProviderDeleteCommand) Run() error {
 	default:
 		return fmt.Errorf("failed to delete model provider")
 	}
-	fmt.Printf("Model provider with ID '%s' deleted successfully.\n", e.Id)
+	fmt.Printf("✅ Model provider '%s' deleted successfully.\n", e.Id)
 	return nil
 }
 
@@ -196,6 +207,15 @@ func displayModelProviders(providers *[]api.ModelProviderResponse) {
 					"Name": p.Name,
 					"ID":   p.ID,
 					"Type": "openai",
+				}
+				continue
+			}
+		} else if provider.IsAnthropicModelProviderResponse() {
+			if p, ok := provider.GetAnthropicModelProviderResponse(); ok {
+				data[i] = map[string]interface{}{
+					"Name": p.Name,
+					"ID":   p.ID,
+					"Type": "anthropic",
 				}
 				continue
 			}

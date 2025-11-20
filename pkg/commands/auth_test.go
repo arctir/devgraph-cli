@@ -52,10 +52,9 @@ func TestAuthLoginCommand_Run(t *testing.T) {
 	// Test that AuthLoginCommand delegates to Auth.Run()
 	loginCmd := &AuthLoginCommand{
 		Config: config.Config{
-			ApiURL:      "https://api.example.com",
-			IssuerURL:   "https://issuer.example.com", 
-			ClientID:    "test-client",
-			RedirectURL: "http://localhost:8080/callback",
+			ApiURL:    "https://api.example.com",
+			IssuerURL: "https://issuer.example.com",
+			ClientID:  "test-client",
 		},
 	}
 
@@ -67,10 +66,9 @@ func TestAuthLoginCommand_Run(t *testing.T) {
 func TestAuthLogoutCommand_Run(t *testing.T) {
 	logoutCmd := &AuthLogoutCommand{
 		Config: config.Config{
-			ApiURL:      "https://api.example.com",
-			IssuerURL:   "https://issuer.example.com",
-			ClientID:    "test-client", 
-			RedirectURL: "http://localhost:8080/callback",
+			ApiURL:    "https://api.example.com",
+			IssuerURL: "https://issuer.example.com",
+			ClientID:  "test-client",
 		},
 	}
 
@@ -83,10 +81,9 @@ func TestAuthLogoutCommand_Run(t *testing.T) {
 func TestAuthWhoamiCommand_Run(t *testing.T) {
 	whoamiCmd := &AuthWhoamiCommand{
 		Config: config.Config{
-			ApiURL:      "https://api.example.com",
-			IssuerURL:   "https://issuer.example.com",
-			ClientID:    "test-client",
-			RedirectURL: "http://localhost:8080/callback",
+			ApiURL:    "https://api.example.com",
+			IssuerURL: "https://issuer.example.com",
+			ClientID:  "test-client",
 		},
 	}
 
@@ -98,10 +95,9 @@ func TestAuthWhoamiCommand_Run(t *testing.T) {
 func TestAuth_Run_InvalidConfig(t *testing.T) {
 	auth := &Auth{
 		Config: config.Config{
-			ApiURL:      "invalid-url",
-			IssuerURL:   "invalid-issuer",
-			ClientID:    "invalid-client",
-			RedirectURL: "invalid-redirect",
+			ApiURL:    "invalid-url",
+			IssuerURL: "invalid-issuer",
+			ClientID:  "invalid-client",
 		},
 	}
 

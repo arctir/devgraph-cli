@@ -54,21 +54,23 @@ func (e *EntityDefinitionListCommand) Run() error {
 	case *api.GetEntityDefinitionsOKApplicationJSON:
 		defs := []api.EntityDefinitionResponse(*r)
 		data := make([]map[string]any, 0, len(defs))
-		for i, def := range defs {
-			gvk := fmt.Sprintf("%s/%s", def.Group, def.Kind)
-			name := ""
+		for _, def := range defs {
+			version := ""
 			if def.Name.IsSet() {
-				name = def.Name.Value
+				version = def.Name.Value
 			}
-			
-			// Debug: print spec for first entity to see available fields
-			if i == 0 {
-				fmt.Printf("DEBUG - Spec fields: %+v\n", def.Spec)
+
+			// Format Type as group/version/kind
+			typeStr := fmt.Sprintf("%s/%s/%s", def.Group, version, def.Kind)
+
+			description := ""
+			if def.Description.IsSet() {
+				description = def.Description.Value
 			}
-			
-			data = append(data, map[string]any{"ID": def.ID.String(), "GVK": gvk, "Description": name})
+
+			data = append(data, map[string]any{"ID": def.ID.String(), "Type": typeStr, "Description": description})
 		}
-		util.DisplaySimpleTable(data, []string{"ID", "GVK", "Description"})
+		util.DisplaySimpleTable(data, []string{"ID", "Type", "Description"})
 	default:
 		return fmt.Errorf("failed to fetch entity definitions")
 	}
@@ -104,7 +106,7 @@ func (e *EntityDefinitionDeleteCommand) Run() error {
 		return fmt.Errorf("failed to delete entity definition")
 	}
 
-	fmt.Printf("Entity definition with ID '%s' deleted successfully.\n", e.Id)
+	fmt.Printf("✅ Entity definition '%s' deleted successfully.\n", e.Id)
 
 	return nil
 }

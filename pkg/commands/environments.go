@@ -4,25 +4,31 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/arctir/devgraph-cli/pkg/auth"
 	"github.com/arctir/devgraph-cli/pkg/config"
 	"github.com/arctir/devgraph-cli/pkg/util"
 	api "github.com/arctir/go-devgraph/pkg/apis/devgraph/v1"
 	"github.com/google/uuid"
 )
 
+// getDefaultEnvironment returns the default environment UUID from user settings
+func getDefaultEnvironment() (string, error) {
+	userConfig, err := config.LoadUserConfig()
+	if err != nil {
+		return "", fmt.Errorf("failed to load user config: %w", err)
+	}
+	if userConfig.Settings.DefaultEnvironment == "" {
+		return "", fmt.Errorf("no environment configured. Use 'dg config set-context <name> --env <env>' to set an environment")
+	}
+	return userConfig.Settings.DefaultEnvironment, nil
+}
+
 type EnvironmentListCommand struct {
 	config.Config
 }
 
-type EnvironmentSwitchCommand struct {
-	config.Config
-	Environment string `arg:"" required:"" help:"Environment name, slug, or ID to switch to"`
-}
-
 type EnvironmentUserListCommand struct {
 	EnvWrapperCommand
-	ShowInvited bool `short:"i" help:"Show only invited users"`
+	Invited bool `short:"i" help:"Show only pending invitations"`
 }
 
 type EnvironmentUserAddCommand struct {
@@ -36,19 +42,45 @@ type EnvironmentUserRemoveCommand struct {
 	UserID string `arg:"" required:"" help:"User ID to remove"`
 }
 
-type EnvironmentUserCommand struct {
+type EnvironmentCurrentCommand struct{}
+
+type EnvironmentCommand struct {
+	Current EnvironmentCurrentCommand `cmd:"current" help:"Display the current environment"`
+	List    EnvironmentListCommand    `cmd:"list" help:"List all environments for Devgraph"`
+}
+
+// UserCommand manages users in the current environment
+type UserCommand struct {
 	List   EnvironmentUserListCommand   `cmd:"list" help:"List users in the current environment"`
 	Add    EnvironmentUserAddCommand    `cmd:"add" help:"Invite a user to the current environment"`
 	Remove EnvironmentUserRemoveCommand `cmd:"remove" help:"Remove a user from the current environment"`
 }
 
-type EnvironmentCommand struct {
-	List   EnvironmentListCommand   `cmd:"list" help:"List all environments for Devgraph"`
-	Switch EnvironmentSwitchCommand `cmd:"switch" help:"Switch to a different environment"`
-	User   EnvironmentUserCommand   `cmd:"user" help:"Manage users in the current environment"`
+func (e *EnvironmentCurrentCommand) Run() error {
+	userConfig, err := config.LoadUserConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	if userConfig.CurrentContext == "" {
+		return fmt.Errorf("no current context set")
+	}
+
+	context, ok := userConfig.Contexts[userConfig.CurrentContext]
+	if !ok {
+		return fmt.Errorf("context '%s' not found", userConfig.CurrentContext)
+	}
+
+	if context.Environment == "" {
+		return fmt.Errorf("no environment set for context '%s'. Use 'dg config set-context %s --env <env>' to set an environment", userConfig.CurrentContext, userConfig.CurrentContext)
+	}
+
+	fmt.Println(context.Environment)
+	return nil
 }
 
 func (e *EnvironmentListCommand) Run() error {
+	e.Config.ApplyDefaults()
 	envs, err := util.GetEnvironments(e.Config)
 	if err != nil {
 		return err
@@ -60,39 +92,6 @@ func (e *EnvironmentListCommand) Run() error {
 	}
 
 	displayEnvironments(envs)
-	return nil
-}
-
-func (e *EnvironmentSwitchCommand) Run() error {
-	// Resolve the environment identifier to UUID
-	environmentUUID, err := util.ResolveEnvironmentUUID(e.Config, e.Environment)
-	if err != nil {
-		return fmt.Errorf("failed to resolve environment '%s': %w", e.Environment, err)
-	}
-
-	// Load user config
-	userConfig, err := config.LoadUserConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load user config: %w", err)
-	}
-
-	// Update default environment
-	userConfig.Settings.DefaultEnvironment = environmentUUID
-
-	// Save config
-	err = config.SaveUserConfig(userConfig)
-	if err != nil {
-		return fmt.Errorf("failed to save user config: %w", err)
-	}
-
-	// Optionally update Clerk session for the new environment
-	// This is currently a no-op but could be extended for Clerk organization switching
-	err = auth.UpdateClerkSessionForEnvironment(e.Config, environmentUUID)
-	if err != nil {
-		fmt.Printf("Warning: Failed to update Clerk session: %v\n", err)
-	}
-
-	fmt.Printf("Switched to environment: %s (UUID: %s)\n", e.Environment, environmentUUID)
 	return nil
 }
 
@@ -120,18 +119,18 @@ func (e *EnvironmentUserListCommand) Run() error {
 		return err
 	}
 
-	if e.Environment == "" {
-		return fmt.Errorf("no environment configured. Use 'devgraph env switch' to set an environment")
+	environment, err := getDefaultEnvironment()
+	if err != nil {
+		return err
 	}
 
 	ctx := context.TODO()
-	envUUID, err := uuid.Parse(e.Environment)
+	envUUID, err := uuid.Parse(environment)
 	if err != nil {
 		return fmt.Errorf("invalid environment UUID: %w", err)
 	}
 
-	if e.ShowInvited {
-		// Use GetPendingInvitations API for invited users
+	if e.Invited {
 		params := api.GetPendingInvitationsParams{
 			EnvironmentID: envUUID,
 		}
@@ -183,8 +182,9 @@ func (e *EnvironmentUserAddCommand) Run() error {
 		return err
 	}
 
-	if e.Environment == "" {
-		return fmt.Errorf("no environment configured. Use 'devgraph env switch' to set an environment")
+	environment, err := getDefaultEnvironment()
+	if err != nil {
+		return err
 	}
 
 	ctx := context.TODO()
@@ -193,7 +193,7 @@ func (e *EnvironmentUserAddCommand) Run() error {
 		Role:         api.NewOptEnvironmentUserInviteRole(api.EnvironmentUserInviteRole(e.Role)),
 	}
 
-	envUUID, err := uuid.Parse(e.Environment)
+	envUUID, err := uuid.Parse(environment)
 	if err != nil {
 		return fmt.Errorf("invalid environment UUID: %w", err)
 	}
@@ -213,7 +213,7 @@ func (e *EnvironmentUserAddCommand) Run() error {
 		return fmt.Errorf("failed to invite user")
 	}
 
-	fmt.Printf("Successfully invited %s to the environment with role %s\n", e.Email, e.Role)
+	fmt.Printf("✅ Invited '%s' to environment with role '%s'.\n", e.Email, e.Role)
 	return nil
 }
 
@@ -223,12 +223,13 @@ func (e *EnvironmentUserRemoveCommand) Run() error {
 		return err
 	}
 
-	if e.Environment == "" {
-		return fmt.Errorf("no environment configured. Use 'devgraph env switch' to set an environment")
+	environment, err := getDefaultEnvironment()
+	if err != nil {
+		return err
 	}
 
 	ctx := context.TODO()
-	envUUID, err := uuid.Parse(e.Environment)
+	envUUID, err := uuid.Parse(environment)
 	if err != nil {
 		return fmt.Errorf("invalid environment UUID: %w", err)
 	}
@@ -249,7 +250,7 @@ func (e *EnvironmentUserRemoveCommand) Run() error {
 		return fmt.Errorf("failed to remove user")
 	}
 
-	fmt.Printf("Successfully removed user %s from the environment\n", e.UserID)
+	fmt.Printf("✅ Removed user '%s' from environment.\n", e.UserID)
 	return nil
 }
 

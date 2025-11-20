@@ -56,7 +56,7 @@ func (e *ModelCreateCommand) Run() error {
 	
 	// Set optional fields if provided
 	if e.Description != nil {
-		body.Description = api.NewOptModelCreateDescription(api.NewStringModelCreateDescription(*e.Description))
+		body.Description = api.NewOptNilString(*e.Description)
 	}
 	if e.Default != nil {
 		body.Default = api.NewOptBool(*e.Default)
@@ -149,7 +149,7 @@ func (e *ModelDeleteCommand) Run() error {
 	default:
 		return fmt.Errorf("failed to delete model")
 	}
-	fmt.Printf("Model with name '%s' deleted successfully.\n", e.Id)
+	fmt.Printf("✅ Model '%s' deleted successfully.\n", e.Id)
 	return nil
 }
 

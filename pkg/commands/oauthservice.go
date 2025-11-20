@@ -80,7 +80,7 @@ type OAuthServiceAuthorizeCommand struct {
 	ClientID     string   `arg:"" required:"" help:"OAuth client ID (not returned from API for security)."`
 	ClientSecret string   `arg:"" required:"" help:"OAuth client secret (not stored for security)."`
 	Scopes       []string `flag:"scopes" optional:"" help:"OAuth scopes to request (uses service defaults if not specified)."`
-	RedirectPort *int     `flag:"redirect-port" default:"8080" help:"Local port for OAuth callback (default: 8080)."`
+	RedirectPort *int     `flag:"redirect-port" default:"40000" help:"Local port for OAuth callback (default: 40000)."`
 }
 
 func (c *OAuthServiceCreateCommand) Run() error {
@@ -118,9 +118,7 @@ func (c *OAuthServiceCreateCommand) Run() error {
 
 	// Set optional fields
 	if c.Description != nil {
-		oauthService.SetDescription(api.NewOptOAuthServiceCreateDescription(
-			api.NewStringOAuthServiceCreateDescription(*c.Description),
-		))
+		oauthService.SetDescription(api.NewOptNilString(*c.Description))
 	}
 
 	if c.UserinfoURL != nil {
@@ -128,15 +126,11 @@ func (c *OAuthServiceCreateCommand) Run() error {
 		if err != nil {
 			return fmt.Errorf("invalid userinfo URL: %w", err)
 		}
-		oauthService.SetUserinfoURL(api.NewOptOAuthServiceCreateUserinfoURL(
-			api.NewURIOAuthServiceCreateUserinfoURL(*userinfoURL),
-		))
+		oauthService.SetUserinfoURL(api.NewOptNilURI(*userinfoURL))
 	}
 
 	if c.DefaultScopes != nil {
-		oauthService.SetDefaultScopes(api.NewOptOAuthServiceCreateDefaultScopes(
-			api.NewStringArrayOAuthServiceCreateDefaultScopes(c.DefaultScopes),
-		))
+		oauthService.SetDefaultScopes(api.NewOptNilStringArray(c.DefaultScopes))
 	}
 
 	if c.IsActive != nil {
@@ -148,9 +142,7 @@ func (c *OAuthServiceCreateCommand) Run() error {
 		if err != nil {
 			return fmt.Errorf("invalid icon URL: %w", err)
 		}
-		oauthService.SetIconURL(api.NewOptOAuthServiceCreateIconURL(
-			api.NewURIOAuthServiceCreateIconURL(*iconURL),
-		))
+		oauthService.SetIconURL(api.NewOptNilURI(*iconURL))
 	}
 
 	if c.HomepageURL != nil {
@@ -158,23 +150,21 @@ func (c *OAuthServiceCreateCommand) Run() error {
 		if err != nil {
 			return fmt.Errorf("invalid homepage URL: %w", err)
 		}
-		oauthService.SetHomepageURL(api.NewOptOAuthServiceCreateHomepageURL(
-			api.NewURIOAuthServiceCreateHomepageURL(*homepageURL),
-		))
+		oauthService.SetHomepageURL(api.NewOptNilURI(*homepageURL))
 	}
 
 	// Make the API call
 	response, err := client.CreateOAuthService(context.TODO(), &oauthService)
 	if err != nil {
-		return fmt.Errorf("failed to create OAuth service: %w", err)
+		return fmt.Errorf("failed to create oauth service: %w", err)
 	}
 
 	// Handle response
 	switch r := response.(type) {
 	case *api.OAuthServiceResponse:
-		fmt.Printf("OAuth service '%s' created successfully with ID: %s\n", c.Name, r.GetID())
+		fmt.Printf("✅ OAuth service '%s' created successfully with ID: %s\n", c.Name, r.GetID())
 	default:
-		return fmt.Errorf("failed to create OAuth service")
+		return fmt.Errorf("failed to create oauth service")
 	}
 
 	return nil
@@ -195,7 +185,7 @@ func (c *OAuthServiceListCommand) Run() error {
 	// Make the API call
 	response, err := client.ListOAuthServices(context.Background(), params)
 	if err != nil {
-		return fmt.Errorf("failed to list OAuth services: %w", err)
+		return fmt.Errorf("failed to list oauth services: %w", err)
 	}
 
 	// Handle response
@@ -207,7 +197,7 @@ func (c *OAuthServiceListCommand) Run() error {
 		}
 		displayOAuthServices(&r.Services)
 	default:
-		return fmt.Errorf("failed to list OAuth services")
+		return fmt.Errorf("failed to list oauth services")
 	}
 
 	return nil
@@ -232,7 +222,7 @@ func (c *OAuthServiceGetCommand) Run() error {
 	// Make the API call
 	response, err := client.GetOAuthService(context.Background(), params)
 	if err != nil {
-		return fmt.Errorf("failed to get OAuth service: %w", err)
+		return fmt.Errorf("failed to get oauth service: %w", err)
 	}
 
 	// Handle response
@@ -241,7 +231,7 @@ func (c *OAuthServiceGetCommand) Run() error {
 		services := []api.OAuthServiceResponse{*r}
 		displayOAuthServices(&services)
 	default:
-		return fmt.Errorf("OAuth service with ID '%s' not found", c.ID)
+		return fmt.Errorf("oauth service with ID '%s' not found", c.ID)
 	}
 
 	return nil
@@ -266,15 +256,15 @@ func (c *OAuthServiceDeleteCommand) Run() error {
 	// Make the API call
 	response, err := client.DeleteOAuthService(context.Background(), params)
 	if err != nil {
-		return fmt.Errorf("failed to delete OAuth service: %w", err)
+		return fmt.Errorf("failed to delete oauth service: %w", err)
 	}
 
 	// Handle response
 	switch response.(type) {
 	case *api.DeleteOAuthServiceNoContent:
-		fmt.Printf("OAuth service with ID '%s' deleted successfully.\n", c.ID)
+		fmt.Printf("✅ OAuth service '%s' deleted successfully.\n", c.ID)
 	default:
-		return fmt.Errorf("failed to delete OAuth service")
+		return fmt.Errorf("failed to delete oauth service")
 	}
 
 	return nil
@@ -296,84 +286,60 @@ func (c *OAuthServiceUpdateCommand) Run() error {
 	oauthUpdate := api.OAuthServiceUpdate{}
 
 	if c.DisplayName != nil {
-		oauthUpdate.SetDisplayName(api.NewOptOAuthServiceUpdateDisplayName(
-			api.NewStringOAuthServiceUpdateDisplayName(*c.DisplayName),
-		))
+		oauthUpdate.SetDisplayName(api.NewOptNilString(*c.DisplayName))
 	}
 	if c.OAuthClientID != nil {
-		oauthUpdate.SetClientID(api.NewOptOAuthServiceUpdateClientID(
-			api.NewStringOAuthServiceUpdateClientID(*c.OAuthClientID),
-		))
+		oauthUpdate.SetClientID(api.NewOptNilString(*c.OAuthClientID))
 	}
 	if c.OAuthClientSecret != nil {
-		oauthUpdate.SetClientSecret(api.NewOptOAuthServiceUpdateClientSecret(
-			api.NewStringOAuthServiceUpdateClientSecret(*c.OAuthClientSecret),
-		))
+		oauthUpdate.SetClientSecret(api.NewOptNilString(*c.OAuthClientSecret))
 	}
 	if c.AuthorizationURL != nil {
 		authURL, err := url.Parse(*c.AuthorizationURL)
 		if err != nil {
 			return fmt.Errorf("invalid authorization URL: %w", err)
 		}
-		oauthUpdate.SetAuthorizationURL(api.NewOptOAuthServiceUpdateAuthorizationURL(
-			api.NewURIOAuthServiceUpdateAuthorizationURL(*authURL),
-		))
+		oauthUpdate.SetAuthorizationURL(api.NewOptNilURI(*authURL))
 	}
 	if c.TokenURL != nil {
 		tokenURL, err := url.Parse(*c.TokenURL)
 		if err != nil {
 			return fmt.Errorf("invalid token URL: %w", err)
 		}
-		oauthUpdate.SetTokenURL(api.NewOptOAuthServiceUpdateTokenURL(
-			api.NewURIOAuthServiceUpdateTokenURL(*tokenURL),
-		))
+		oauthUpdate.SetTokenURL(api.NewOptNilURI(*tokenURL))
 	}
 	if c.SupportedGrantTypes != nil {
-		oauthUpdate.SetSupportedGrantTypes(api.NewOptOAuthServiceUpdateSupportedGrantTypes(
-			api.NewStringArrayOAuthServiceUpdateSupportedGrantTypes(c.SupportedGrantTypes),
-		))
+		oauthUpdate.SetSupportedGrantTypes(api.NewOptNilStringArray(c.SupportedGrantTypes))
 	}
 	if c.Description != nil {
-		oauthUpdate.SetDescription(api.NewOptOAuthServiceUpdateDescription(
-			api.NewStringOAuthServiceUpdateDescription(*c.Description),
-		))
+		oauthUpdate.SetDescription(api.NewOptNilString(*c.Description))
 	}
 	if c.UserinfoURL != nil {
 		userinfoURL, err := url.Parse(*c.UserinfoURL)
 		if err != nil {
 			return fmt.Errorf("invalid userinfo URL: %w", err)
 		}
-		oauthUpdate.SetUserinfoURL(api.NewOptOAuthServiceUpdateUserinfoURL(
-			api.NewURIOAuthServiceUpdateUserinfoURL(*userinfoURL),
-		))
+		oauthUpdate.SetUserinfoURL(api.NewOptNilURI(*userinfoURL))
 	}
 	if c.DefaultScopes != nil {
-		oauthUpdate.SetDefaultScopes(api.NewOptOAuthServiceUpdateDefaultScopes(
-			api.NewStringArrayOAuthServiceUpdateDefaultScopes(c.DefaultScopes),
-		))
+		oauthUpdate.SetDefaultScopes(api.NewOptNilStringArray(c.DefaultScopes))
 	}
 	if c.IsActive != nil {
-		oauthUpdate.SetIsActive(api.NewOptOAuthServiceUpdateIsActive(
-			api.NewBoolOAuthServiceUpdateIsActive(*c.IsActive),
-		))
+		oauthUpdate.SetIsActive(api.NewOptNilBool(*c.IsActive))
 	}
 	if c.IconURL != nil {
 		iconURL, err := url.Parse(*c.IconURL)
 		if err != nil {
 			return fmt.Errorf("invalid icon URL: %w", err)
 		}
-		oauthUpdate.SetIconURL(api.NewOptOAuthServiceUpdateIconURL(
-			api.NewURIOAuthServiceUpdateIconURL(*iconURL),
-		))
+		oauthUpdate.SetIconURL(api.NewOptNilURI(*iconURL))
 	}
 	if c.HomepageURL != nil {
 		homepageURL, err := url.Parse(*c.HomepageURL)
 		if err != nil {
 			return fmt.Errorf("invalid homepage URL: %w", err)
 		}
-		oauthUpdate.SetHomepageURL(api.NewOptOAuthServiceUpdateHomepageURL(
-			api.NewURIOAuthServiceUpdateHomepageURL(*homepageURL),
-		))
+		oauthUpdate.SetHomepageURL(api.NewOptNilURI(*homepageURL))
 	}
 
 	params := api.UpdateOAuthServiceParams{
@@ -383,15 +349,15 @@ func (c *OAuthServiceUpdateCommand) Run() error {
 	// Make the API call
 	response, err := client.UpdateOAuthService(context.TODO(), &oauthUpdate, params)
 	if err != nil {
-		return fmt.Errorf("failed to update OAuth service: %w", err)
+		return fmt.Errorf("failed to update oauth service: %w", err)
 	}
 
 	// Handle response
 	switch response.(type) {
 	case *api.OAuthServiceResponse:
-		fmt.Printf("OAuth service with ID '%s' updated successfully.\n", c.ID)
+		fmt.Printf("✅ OAuth service '%s' updated successfully.\n", c.ID)
 	default:
-		return fmt.Errorf("failed to update OAuth service")
+		return fmt.Errorf("failed to update oauth service")
 	}
 
 	return nil
@@ -416,7 +382,7 @@ func (c *OAuthServiceAuthorizeCommand) Run() error {
 
 	response, err := client.GetOAuthService(context.Background(), params)
 	if err != nil {
-		return fmt.Errorf("failed to get OAuth service: %w", err)
+		return fmt.Errorf("failed to get oauth service: %w", err)
 	}
 
 	var service *api.OAuthServiceResponse
@@ -424,7 +390,7 @@ func (c *OAuthServiceAuthorizeCommand) Run() error {
 	case *api.OAuthServiceResponse:
 		service = r
 	default:
-		return fmt.Errorf("OAuth service with ID '%s' not found", c.ServiceID)
+		return fmt.Errorf("oauth service with ID '%s' not found", c.ServiceID)
 	}
 
 	// Determine scopes to use
@@ -446,7 +412,7 @@ func (c *OAuthServiceAuthorizeCommand) Run() error {
 	}
 
 	// Determine redirect port
-	redirectPort := 8080
+	redirectPort := 40000
 	if c.RedirectPort != nil {
 		redirectPort = *c.RedirectPort
 	}
@@ -474,10 +440,10 @@ func (c *OAuthServiceAuthorizeCommand) Run() error {
 		LocalServerReadyChan: make(chan string, 1),
 	})
 	if err != nil {
-		return fmt.Errorf("OAuth authorization failed: %w", err)
+		return fmt.Errorf("oauth authorization failed: %w", err)
 	}
 
-	fmt.Println("✓ OAuth authorization successful!")
+	fmt.Println("✅ OAuth authorization successful!")
 	fmt.Printf("Access Token: %s\n", token.AccessToken)
 	if token.RefreshToken != "" {
 		fmt.Printf("Refresh Token: %s\n", token.RefreshToken)
@@ -487,9 +453,9 @@ func (c *OAuthServiceAuthorizeCommand) Run() error {
 	}
 
 	// If there's a userinfo endpoint, fetch user info
-	if userinfoURL, ok := service.UserinfoURL.GetString(); ok && userinfoURL != "" {
+	if !service.UserinfoURL.Null && service.UserinfoURL.Value != "" {
 		fmt.Println("\nFetching user information...")
-		if err := c.fetchUserInfo(token, userinfoURL); err != nil {
+		if err := c.fetchUserInfo(token, service.UserinfoURL.Value); err != nil {
 			fmt.Printf("Warning: Failed to fetch user info: %v\n", err)
 		}
 	}

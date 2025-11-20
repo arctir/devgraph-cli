@@ -14,26 +14,35 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// DefaultRedirectURL is the OAuth callback URL used during authentication.
+// The oauth2cli library dynamically selects from ports 40000-40005.
+const DefaultRedirectURL = "http://localhost:40000/callback"
+
 // AuthenticatedClient creates an HTTP client configured with authentication
 // for making requests to Devgraph API. The client automatically handles
 // token refresh and includes required headers.
 func AuthenticatedClient(c config.Config) (*http.Client, error) {
-	environment := c.Environment
+	// Get the default environment UUID from user settings
+	environment := ""
+	userConfig, err := config.LoadUserConfig()
+	if err == nil {
+		environment = userConfig.Settings.DefaultEnvironment
+	}
 	// Note: For some operations like listing environments, environment may be empty
 	// We'll pass empty string if not set
 
 	creds, err := LoadCredentials()
 	if err != nil {
-		return nil, fmt.Errorf("failed to load credentials: %v", err)
+		return nil, fmt.Errorf("failed to load credentials: %w", err)
 	}
 
 	endpoints, err := getWellKnownEndpoints(c.IssuerURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get well-known endpoints: %v", err)
+		return nil, fmt.Errorf("failed to get well-known endpoints: %w", err)
 	}
 	oauth2Config := oauth2.Config{
 		ClientID:    c.ClientID,
-		RedirectURL: c.RedirectURL,
+		RedirectURL: DefaultRedirectURL,
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  endpoints.AuthorizationEndpoint,
 			TokenURL: endpoints.TokenEndpoint,
@@ -60,7 +69,7 @@ func AuthenticatedClient(c config.Config) (*http.Client, error) {
 
 	provider, err := oidc.NewProvider(context.Background(), c.IssuerURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create OIDC provider: %v", err)
+		return nil, fmt.Errorf("failed to create OIDC provider: %w", err)
 	}
 
 	tokenManager := NewOIDCTokenManager(

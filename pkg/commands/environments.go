@@ -46,9 +46,16 @@ type EnvironmentUserRemoveCommand struct {
 
 type EnvironmentCurrentCommand struct{}
 
+type EnvironmentDeleteCommand struct {
+	EnvWrapperCommand
+	EnvironmentID string `arg:"" required:"" help:"Environment ID to delete"`
+	Confirm       bool   `short:"y" help:"Skip confirmation prompt"`
+}
+
 type EnvironmentCommand struct {
 	Current EnvironmentCurrentCommand `cmd:"current" help:"Display the current environment"`
 	List    EnvironmentListCommand    `cmd:"list" help:"List all environments for Devgraph"`
+	Delete  EnvironmentDeleteCommand  `cmd:"delete" help:"Delete an environment (WARNING: May be permanent after grace period)"`
 }
 
 // UserCommand manages users in the current environment
@@ -117,24 +124,6 @@ func (e *EnvironmentListCommand) Run() error {
 
 	headers := []string{"ID", "Name", "Slug"}
 	return util.FormatOutput(e.Output, structured, headers, tableData)
-}
-
-func displayEnvironments(envs *[]api.EnvironmentResponse) {
-	if envs == nil || len(*envs) == 0 {
-		fmt.Println("No environments found.")
-		return
-	}
-
-	headers := []string{"ID", "Name", "Slug"}
-	data := make([]map[string]any, len(*envs))
-	for i, env := range *envs {
-		data[i] = map[string]any{
-			"Name": env.Name,
-			"ID":   env.ID,
-			"Slug": env.Slug,
-		}
-	}
-	util.DisplaySimpleTable(data, headers)
 }
 
 func (e *EnvironmentUserListCommand) Run() error {
@@ -328,40 +317,79 @@ func (e *EnvironmentUserRemoveCommand) Run() error {
 	return nil
 }
 
-func displayEnvironmentUsers(users *[]api.EnvironmentUserResponse) {
-	if users == nil || len(*users) == 0 {
-		fmt.Println("No users found in this environment.")
-		return
+func (e *EnvironmentDeleteCommand) Run() error {
+	client, err := util.GetAuthenticatedClient(e.Config)
+	if err != nil {
+		return err
 	}
 
-	headers := []string{"ID", "Email", "Role", "Status"}
-	data := make([]map[string]any, len(*users))
-	for i, user := range *users {
-		data[i] = map[string]any{
-			"ID":     user.ID,
-			"Email":  user.EmailAddress,
-			"Role":   user.Role,
-			"Status": user.Status,
+	ctx := context.TODO()
+	envUUID, err := uuid.Parse(e.EnvironmentID)
+	if err != nil {
+		return fmt.Errorf("invalid environment UUID: %w", err)
+	}
+
+	// Display BIG WARNING
+	fmt.Println("╔════════════════════════════════════════════════════════════════════════════╗")
+	fmt.Println("║                            ⚠️  WARNING ⚠️                                    ║")
+	fmt.Println("║                                                                            ║")
+	fmt.Println("║  You are about to DELETE an environment. This action will:                ║")
+	fmt.Println("║                                                                            ║")
+	fmt.Println("║  1. Mark the environment as DELETED immediately                           ║")
+	fmt.Println("║  2. Enter a GRACE PERIOD (typically 30 days based on your plan)           ║")
+	fmt.Println("║  3. After the grace period, deletion becomes PERMANENT and IRREVERSIBLE   ║")
+	fmt.Println("║                                                                            ║")
+	fmt.Println("║  During the grace period:                                                 ║")
+	fmt.Println("║  • The environment will be INACCESSIBLE                                    ║")
+	fmt.Println("║  • All data is retained but UNUSABLE                                       ║")
+	fmt.Println("║  • Kubernetes resources will be CLEANED UP                                 ║")
+	fmt.Println("║  • You may contact support to recover the environment                     ║")
+	fmt.Println("║                                                                            ║")
+	fmt.Println("║  After the grace period expires:                                          ║")
+	fmt.Println("║  • ALL DATA WILL BE PERMANENTLY DELETED                                    ║")
+	fmt.Println("║  • RECOVERY WILL NOT BE POSSIBLE                                           ║")
+	fmt.Println("║                                                                            ║")
+	fmt.Println("╚════════════════════════════════════════════════════════════════════════════╝")
+	fmt.Println()
+
+	// Prompt for confirmation unless -y flag is used
+	if !e.Confirm {
+		fmt.Printf("Environment ID: %s\n\n", e.EnvironmentID)
+		fmt.Print("Type 'DELETE' (all caps) to confirm deletion: ")
+
+		var confirmation string
+		_, err := fmt.Scanln(&confirmation)
+		if err != nil {
+			return fmt.Errorf("failed to read confirmation: %w", err)
+		}
+
+		if confirmation != "DELETE" {
+			fmt.Println("❌ Deletion cancelled.")
+			return nil
 		}
 	}
-	util.DisplaySimpleTable(data, headers)
-}
 
-func displayPendingInvitations(invites *[]api.PendingInvitationResponse) {
-	if invites == nil || len(*invites) == 0 {
-		fmt.Println("No pending invitations found in this environment.")
-		return
+	// Execute the delete
+	params := api.DeleteEnvironmentParams{
+		EnvID: envUUID,
+	}
+	resp, err := client.DeleteEnvironment(ctx, params)
+	if err != nil {
+		return fmt.Errorf("failed to delete environment: %w", err)
 	}
 
-	headers := []string{"ID", "Email", "Role", "Status"}
-	data := make([]map[string]any, len(*invites))
-	for i, invite := range *invites {
-		data[i] = map[string]any{
-			"ID":     invite.ID,
-			"Email":  invite.EmailAddress,
-			"Role":   invite.Role,
-			"Status": invite.Status,
-		}
+	// Check if response is successful
+	switch resp.(type) {
+	case *api.DeleteEnvironmentNoContent:
+		fmt.Println()
+		fmt.Println("✅ Environment has been marked for deletion.")
+		fmt.Println()
+		fmt.Println("The environment is now entering the grace period.")
+		fmt.Println("Contact support if you need to recover this environment before the grace period expires.")
+		return nil
+	case *api.DeleteEnvironmentNotFound:
+		return fmt.Errorf("environment not found")
+	default:
+		return fmt.Errorf("unexpected response when deleting environment")
 	}
-	util.DisplaySimpleTable(data, headers)
 }

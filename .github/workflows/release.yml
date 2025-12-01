@@ -17,11 +17,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24" # Match your project's Go version
+          go-version: "1.23" # Match your project's Go version
           cache: true
 
       - name: Install dependencies
@@ -33,7 +33,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
-          version: v2.1
+          version: latest
 
   goreleaser:
     needs: test  # Only run if tests pass
@@ -49,7 +49,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24" # Match your project's Go version  
+          go-version: "1.23" # Match your project's Go version
           cache: true # Cache Go modules for faster builds
 
       # Run GoReleaser to build and release

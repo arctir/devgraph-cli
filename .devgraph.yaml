@@ -5,6 +5,6 @@ relations:
       kind: GithubRepository
       name: devgraph-cli
     target:
-      apiVersion: meta.devgraph.ai/v1
-      kind: Project
+      apiVersion: entities.devgraph.ai/v1
+      kind: Workstream
       name: devgraph

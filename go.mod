@@ -2,12 +2,12 @@ module github.com/arctir/devgraph-cli
 
 go 1.24.0
 
-toolchain go1.24.6
+toolchain go1.24.9
 
 require (
 	github.com/alecthomas/chroma/v2 v2.20.0
 	github.com/alecthomas/kong v1.9.0
-	github.com/arctir/go-devgraph v1.0.0-beta.19
+	github.com/arctir/go-devgraph v1.0.0-beta.49
 	github.com/charmbracelet/glamour v0.10.0
 	github.com/coreos/go-oidc/v3 v3.13.0
 	github.com/fatih/color v1.18.0

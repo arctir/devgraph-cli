@@ -6,8 +6,10 @@ github.com/alecthomas/kong v1.9.0 h1:Wgg0ll5Ys7xDnpgYBuBn/wPeLGAuK0NvYmEcisJgrIs
 github.com/alecthomas/kong v1.9.0/go.mod h1:p2vqieVMeTAnaC83txKtXe8FLke2X07aruPWXyMPQrU=
 github.com/alecthomas/repr v0.5.1 h1:E3G4t2QbHTSNpPKBgMTln5KLkZHLOcU7r37J4pXBuIg=
 github.com/alecthomas/repr v0.5.1/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
-github.com/arctir/go-devgraph v1.0.0-beta.19 h1:xw4r8i21ZM7Cc7u7seJHgZ5cJfiQfrU0t4SqnpZcSS0=
-github.com/arctir/go-devgraph v1.0.0-beta.19/go.mod h1:taUYVzFA9Ouht6NU1wbOp8SDXV7WSx/eD5SpWQLSYxo=
+github.com/arctir/go-devgraph v1.0.0-beta.22 h1:+wFb54XzOtifIlKatCkm9qQMghwvTDm8cDSI1tDemDw=
+github.com/arctir/go-devgraph v1.0.0-beta.22/go.mod h1:taUYVzFA9Ouht6NU1wbOp8SDXV7WSx/eD5SpWQLSYxo=
+github.com/arctir/go-devgraph v1.0.0-beta.49 h1:ZDGPZn5Xc5P0iLI0hDte/BkWEqHoFRMY24KOmY/TSvc=
+github.com/arctir/go-devgraph v1.0.0-beta.49/go.mod h1:taUYVzFA9Ouht6NU1wbOp8SDXV7WSx/eD5SpWQLSYxo=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1 h1:HwpRHbFMcZLEVr42D4p7XBqjyuxQH5SMiErDT4WkJ2k=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1/go.mod h1:uYgXzlJ7ZpABp8OJ+exZzJJhRNQ2ASbcXHWsFqH8hp8=
 github.com/aymanbagabas/go-udiff v0.2.0 h1:TK0fH4MteXUDspT88n8CKzvK0X9O2xu9yQjWpi6yML8=

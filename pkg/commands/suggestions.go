@@ -142,22 +142,3 @@ func (s *SuggestionDeleteCommand) Run() error {
 	}
 	return nil
 }
-
-func displaySuggestions(suggestions *[]api.ChatSuggestionResponse) {
-	if suggestions == nil || len(*suggestions) == 0 {
-		fmt.Println("No chat suggestions found.")
-		return
-	}
-
-	headers := []string{"ID", "Title", "Label", "Action"}
-	data := make([]map[string]any, len(*suggestions))
-	for i, s := range *suggestions {
-		data[i] = map[string]any{
-			"ID":     s.ID,
-			"Title":  s.Title,
-			"Label":  s.Label,
-			"Action": s.Action,
-		}
-	}
-	util.DisplaySimpleTable(data, headers)
-}

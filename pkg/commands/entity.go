@@ -324,38 +324,6 @@ func displayEntitiesAsTable(entities []api.EntityResponse) error {
 	return nil
 }
 
-// displayEntitiesAsYAML displays entities in YAML format with filtered fields
-func displayEntitiesAsYAML(entities []api.EntityResponse) error {
-	var filteredEntities []FilteredEntity
-	for _, entity := range entities {
-		filteredEntities = append(filteredEntities, filterEntity(entity))
-	}
-	
-	yamlData, err := yaml.Marshal(filteredEntities)
-	if err != nil {
-		return fmt.Errorf("failed to marshal entities to YAML: %w", err)
-	}
-	
-	fmt.Print(string(yamlData))
-	return nil
-}
-
-// displayEntitiesAsJSON displays entities in JSON format with filtered fields
-func displayEntitiesAsJSON(entities []api.EntityResponse) error {
-	var filteredEntities []FilteredEntity
-	for _, entity := range entities {
-		filteredEntities = append(filteredEntities, filterEntity(entity))
-	}
-	
-	jsonData, err := json.MarshalIndent(filteredEntities, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal entities to JSON: %w", err)
-	}
-	
-	fmt.Println(string(jsonData))
-	return nil
-}
-
 // displaySingleEntity displays a single entity in the specified format with filtered fields
 func displaySingleEntity(entity api.EntityResponse, outputFormat string) error {
 	// First convert to JSON to get clean serialization

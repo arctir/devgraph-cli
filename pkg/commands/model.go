@@ -178,6 +178,7 @@ func (e *ModelDeleteCommand) Run() error {
 func displayModels(models *[]api.ModelResponse) {
 	if models == nil || len(*models) == 0 {
 		fmt.Println("No models found.")
+		return
 	}
 
 	headers := []string{"ID", "Name", "Provider ID"}

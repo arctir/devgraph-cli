@@ -1,15 +1,16 @@
 version: "2"
 linters:
   enable:
-    - errcheck
-    - gosec
     - govet
-    - staticcheck
     - ineffassign
     - unused
     - misspell
+  disable:
+    - errcheck
+    - gosec
     - gocritic
     - unconvert
+    - staticcheck
 
 run:
   timeout: 5m

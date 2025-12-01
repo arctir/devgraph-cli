@@ -31,7 +31,7 @@ debug: true`,
 			expectError: false,
 		},
 		{
-			name: "partial config",
+			name:          "partial config",
 			configContent: `apiurl: https://api.example.com`,
 			expected: &Config{
 				ApiURL: "https://api.example.com",

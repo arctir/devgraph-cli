@@ -72,11 +72,11 @@ func TestValidateEnvironment_InvalidConfig(t *testing.T) {
 	invalidConfig := config.Config{
 		ApiURL:    "invalid-url",
 		IssuerURL: "invalid-issuer",
-		ClientID:  "invalid-client", 
+		ClientID:  "invalid-client",
 	}
 
 	err := ValidateEnvironment(invalidConfig, "test-env")
-	
+
 	assert.Error(t, err)
 }
 
@@ -88,7 +88,7 @@ func TestResolveEnvironmentUUID_InvalidConfig(t *testing.T) {
 	}
 
 	uuid, err := ResolveEnvironmentUUID(invalidConfig, "test-env")
-	
+
 	assert.Error(t, err)
 	assert.Empty(t, uuid)
 }
@@ -97,7 +97,7 @@ func TestGetEnvironmentList(t *testing.T) {
 	// Test that the function exists and handles edge cases
 	// We can't easily test the actual function without proper types,
 	// but we can verify it's accessible and doesn't cause import issues
-	
+
 	assert.NotPanics(t, func() {
 		// This test ensures the package compiles and functions are accessible
 		// getEnvironmentList would need proper devgraphv1.EnvironmentResponse types

@@ -104,7 +104,7 @@ func (s *DevgraphSecuritySource) OAuth2PasswordBearer(ctx context.Context, opera
 	if err != nil {
 		return api.OAuth2PasswordBearer{}, err
 	}
-	
+
 	return api.OAuth2PasswordBearer{
 		Token:  creds.IDToken,
 		Scopes: []string{}, // Scopes are handled by the token itself

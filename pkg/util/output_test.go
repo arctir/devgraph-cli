@@ -200,10 +200,10 @@ func TestDisplayTable_DifferentDataTypes(t *testing.T) {
 	output := buf.String()
 
 	// Check that different data types are properly formatted
-	assert.Contains(t, output, "test")   // string
-	assert.Contains(t, output, "42")     // int
-	assert.Contains(t, output, "3.14")   // float (truncated to 2 decimals)
-	assert.Contains(t, output, "true")   // bool
-	assert.Contains(t, output, "<nil>")  // nil value
-	assert.Contains(t, output, "-")      // missing value
+	assert.Contains(t, output, "test")  // string
+	assert.Contains(t, output, "42")    // int
+	assert.Contains(t, output, "3.14")  // float (truncated to 2 decimals)
+	assert.Contains(t, output, "true")  // bool
+	assert.Contains(t, output, "<nil>") // nil value
+	assert.Contains(t, output, "-")     // missing value
 }

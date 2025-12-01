@@ -54,7 +54,7 @@ func (e *ModelCreateCommand) Run() error {
 		ProviderID: providerId,
 		Name:       e.Name,
 	}
-	
+
 	// Set optional fields if provided
 	if e.Description != nil {
 		body.Description = api.NewOptNilString(*e.Description)

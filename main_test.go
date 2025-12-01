@@ -28,11 +28,11 @@ func TestCLIStructure(t *testing.T) {
 func TestMain_Integration(t *testing.T) {
 	// Test that main doesn't panic with invalid arguments
 	// Note: This is a basic smoke test since main() calls os.Exit
-	
+
 	// We can't easily test main() directly since it calls os.Exit,
 	// but we can test that the CLI structure is valid
 	cli := CLI{}
-	
+
 	// Verify the CLI can be initialized without panicking
 	assert.NotPanics(t, func() {
 		_ = cli

@@ -80,8 +80,9 @@ func ValidateEnvironment(config config.Config, environmentID string) error {
 // ResolveEnvironmentUUID resolves an environment name, slug, or UUID to its UUID.
 // The environmentIdentifier can be any of:
 //   - Environment UUID (exact match)
-//   - Environment slug (exact match)  
+//   - Environment slug (exact match)
 //   - Environment name (exact match)
+//
 // Returns the UUID of the matching environment, or an error if no match is found.
 func ResolveEnvironmentUUID(config config.Config, environmentIdentifier string) (string, error) {
 	envs, err := GetEnvironments(config)

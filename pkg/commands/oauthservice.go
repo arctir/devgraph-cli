@@ -503,30 +503,30 @@ func (c *OAuthServiceAuthorizeCommand) fetchUserInfo(token *oauth2.Token, userin
 	if err != nil {
 		return err
 	}
-	
+
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
 	req.Header.Set("Accept", "application/json")
-	
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("userinfo endpoint returned status %d", resp.StatusCode)
 	}
-	
+
 	var userInfo map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
 		return err
 	}
-	
+
 	fmt.Println("User Information:")
 	for key, value := range userInfo {
 		fmt.Printf("  %s: %v\n", key, value)
 	}
-	
+
 	return nil
 }
 

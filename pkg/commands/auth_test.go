@@ -39,23 +39,23 @@ func (m *mockAuthenticator) Authenticate(cfg config.Config) (*oauth2.Token, erro
 
 func TestAuthCommand_Structure(t *testing.T) {
 	authCmd := AuthCommand{}
-	
+
 	// Test that all subcommands are available
 	assert.NotNil(t, &authCmd.Login, "Login command should be available")
-	assert.NotNil(t, &authCmd.Logout, "Logout command should be available") 
+	assert.NotNil(t, &authCmd.Logout, "Logout command should be available")
 	assert.NotNil(t, &authCmd.Whoami, "Whoami command should be available")
 }
 
 func TestParseJWT_ValidToken(t *testing.T) {
 	// Create a test JWT token structure (not a real token, just for parsing test)
 	// This avoids gosec G101 warning about hardcoded credentials
-	header := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"  // {"alg":"HS256","typ":"JWT"}
-	payload := "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"  // {"sub":"1234567890","name":"John Doe","iat":1516239022}
-	signature := "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"  // Mock signature for testing
+	header := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"                                        // {"alg":"HS256","typ":"JWT"}
+	payload := "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ" // {"sub":"1234567890","name":"John Doe","iat":1516239022}
+	signature := "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"                              // Mock signature for testing
 	testToken := header + "." + payload + "." + signature
 
 	claims, err := parseJWT(testToken)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, claims)
 	assert.Equal(t, "1234567890", (*claims)["sub"])
@@ -65,7 +65,7 @@ func TestParseJWT_ValidToken(t *testing.T) {
 func TestParseJWT_InvalidToken(t *testing.T) {
 	// Test with invalid token
 	claims, err := parseJWT("invalid.token.here")
-	
+
 	assert.Error(t, err)
 	assert.Nil(t, claims)
 }
@@ -73,7 +73,7 @@ func TestParseJWT_InvalidToken(t *testing.T) {
 func TestParseJWT_EmptyToken(t *testing.T) {
 	// Test with empty token
 	claims, err := parseJWT("")
-	
+
 	assert.Error(t, err)
 	assert.Nil(t, claims)
 }

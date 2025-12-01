@@ -19,13 +19,13 @@ import (
 func parseEntityID(entityID string) (group, version, plural, namespace, name string, err error) {
 	// Remove optional entity:// prefix
 	id := strings.TrimPrefix(entityID, "entity://")
-	
+
 	// Split the ID into parts
 	parts := strings.Split(id, "/")
 	if len(parts) != 5 {
 		return "", "", "", "", "", fmt.Errorf("invalid entity ID format: expected <group>/<version>/<plural>/<namespace>/<name>, got: %s", entityID)
 	}
-	
+
 	return parts[0], parts[1], parts[2], parts[3], parts[4], nil
 }
 
@@ -308,18 +308,18 @@ func displayEntitiesAsTable(entities []api.EntityResponse) error {
 	// Prepare data for table display
 	headers := []string{"Entity ID", "Name", "Namespace", "API Version", "Kind"}
 	data := make([]map[string]interface{}, len(entities))
-	
+
 	for i, entity := range entities {
 		// Use the entity ID provided by the API response
 		data[i] = map[string]interface{}{
 			"Entity ID":   entity.ID,
-			"Name":       entity.Name,
-			"Namespace":  entity.Namespace,
+			"Name":        entity.Name,
+			"Namespace":   entity.Namespace,
 			"API Version": entity.ApiVersion,
-			"Kind":       entity.Kind,
+			"Kind":        entity.Kind,
 		}
 	}
-	
+
 	displayEntityTable(data, headers)
 	return nil
 }
@@ -331,20 +331,20 @@ func displaySingleEntity(entity api.EntityResponse, outputFormat string) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal entity to JSON: %w", err)
 	}
-	
+
 	// Parse back into a generic map to filter fields
 	var entityMap map[string]interface{}
 	if err := json.Unmarshal(jsonData, &entityMap); err != nil {
 		return fmt.Errorf("failed to unmarshal entity: %w", err)
 	}
-	
+
 	// Create filtered map with only desired fields
 	filteredMap := map[string]interface{}{
 		"apiVersion": entityMap["apiVersion"],
 		"kind":       entityMap["kind"],
 		"metadata":   entityMap["metadata"],
 	}
-	
+
 	// Add spec and status if they exist
 	if spec, exists := entityMap["spec"]; exists && spec != nil {
 		filteredMap["spec"] = spec
@@ -352,7 +352,7 @@ func displaySingleEntity(entity api.EntityResponse, outputFormat string) error {
 	if status, exists := entityMap["status"]; exists && status != nil {
 		filteredMap["status"] = status
 	}
-	
+
 	switch strings.ToLower(outputFormat) {
 	case "yaml", "yml":
 		yamlData, err := yaml.Marshal(filteredMap)
@@ -369,7 +369,7 @@ func displaySingleEntity(entity api.EntityResponse, outputFormat string) error {
 		}
 		fmt.Println(string(jsonData))
 	}
-	
+
 	return nil
 }
 
@@ -594,7 +594,7 @@ func (e *EntityListCommand) Run() error {
 
 	// Build the parameters for the API call
 	params := api.GetEntitiesParams{}
-	
+
 	// Set optional filters if provided
 	if e.Name != "" {
 		params.Name = api.NewOptString(e.Name)
@@ -781,13 +781,13 @@ func (e *EntityRelationshipsCommand) displayRelationshipsAsTable(relations []api
 
 	for _, relation := range relations {
 		var direction, relatedEntity string
-		
+
 		// Determine direction and related entity
 		if relation.Source.ID == targetEntityRef {
 			direction = "Outgoing"
 			relatedEntity = relation.Target.ID
 		} else if relation.Target.ID == targetEntityRef {
-			direction = "Incoming"  
+			direction = "Incoming"
 			relatedEntity = relation.Source.ID
 		} else {
 			// This relation doesn't involve our target entity, skip it
@@ -823,7 +823,7 @@ func (e *EntityRelationshipsCommand) displayRelationshipsAsYAML(relations []api.
 	if err != nil {
 		return fmt.Errorf("failed to marshal relationships to YAML: %w", err)
 	}
-	
+
 	fmt.Print(string(yamlData))
 	return nil
 }
@@ -1079,8 +1079,8 @@ func (e *EntityRestoreCommand) Run() error {
 			// Only process .yaml, .yml, and .json files
 			filename := file.Name()
 			if !strings.HasSuffix(filename, ".yaml") &&
-			   !strings.HasSuffix(filename, ".yml") &&
-			   !strings.HasSuffix(filename, ".json") {
+				!strings.HasSuffix(filename, ".yml") &&
+				!strings.HasSuffix(filename, ".json") {
 				continue
 			}
 
@@ -1114,8 +1114,8 @@ func (e *EntityRestoreCommand) Run() error {
 
 			filename := file.Name()
 			if !strings.HasSuffix(filename, ".yaml") &&
-			   !strings.HasSuffix(filename, ".yml") &&
-			   !strings.HasSuffix(filename, ".json") {
+				!strings.HasSuffix(filename, ".yml") &&
+				!strings.HasSuffix(filename, ".json") {
 				continue
 			}
 
@@ -1149,8 +1149,8 @@ func (e *EntityRestoreCommand) Run() error {
 
 			filename := file.Name()
 			if !strings.HasSuffix(filename, ".yaml") &&
-			   !strings.HasSuffix(filename, ".yml") &&
-			   !strings.HasSuffix(filename, ".json") {
+				!strings.HasSuffix(filename, ".yml") &&
+				!strings.HasSuffix(filename, ".json") {
 				continue
 			}
 
@@ -1183,8 +1183,8 @@ func (e *EntityRestoreCommand) Run() error {
 
 			filename := file.Name()
 			if !strings.HasSuffix(filename, ".yaml") &&
-			   !strings.HasSuffix(filename, ".yml") &&
-			   !strings.HasSuffix(filename, ".json") {
+				!strings.HasSuffix(filename, ".yml") &&
+				!strings.HasSuffix(filename, ".json") {
 				continue
 			}
 

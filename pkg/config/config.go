@@ -260,7 +260,6 @@ func SaveUserConfig(userConfig *UserConfig) error {
 	return nil
 }
 
-
 // LoadCredentials loads credentials from the unified config (for backward compatibility)
 // Now supports loading from contexts
 func LoadCredentials() (*Credentials, error) {

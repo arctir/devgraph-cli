@@ -18,7 +18,7 @@ type DevgraphTransport struct {
 	// Transport is the underlying HTTP transport to use (defaults to http.DefaultTransport if nil)
 	Transport http.RoundTripper
 	// Headers contains additional headers to add to every request
-	Headers   map[string]string
+	Headers map[string]string
 }
 
 // RoundTrip implements the http.RoundTripper interface.
@@ -45,12 +45,12 @@ func (t *DevgraphTransport) RoundTrip(req *http.Request) (*http.Response, error)
 // It implements oauth2.TokenSource and handles the complexity of refreshing expired tokens,
 // saving updated tokens to persistent storage, and providing authenticated HTTP clients.
 type OIDCTokenManager struct {
-	config              oauth2.Config        // OAuth2 configuration
-	mu                  sync.Mutex           // Mutex for thread-safe token operations
-	token               *oauth2.Token        // Current token (access, refresh, ID token)
-	tokenSrc            oauth2.TokenSource   // Underlying token source for refresh
+	config              oauth2.Config         // OAuth2 configuration
+	mu                  sync.Mutex            // Mutex for thread-safe token operations
+	token               *oauth2.Token         // Current token (access, refresh, ID token)
+	tokenSrc            oauth2.TokenSource    // Underlying token source for refresh
 	oidcVerifier        *oidc.IDTokenVerifier // Optional: for ID token verification
-	devgraphEnvironment string               // Devgraph environment ID for API calls
+	devgraphEnvironment string                // Devgraph environment ID for API calls
 }
 
 // NewOIDCTokenManager creates a new token manager with the provided initial token.

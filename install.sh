@@ -38,20 +38,20 @@ success() {
 # Detect platform and architecture
 detect_platform() {
     local os arch
-    
+
     case "$(uname -s)" in
         Linux*)     os="linux" ;;
         Darwin*)    os="darwin" ;;
         CYGWIN*|MINGW*|MSYS*) os="windows" ;;
         *)          error "Unsupported operating system: $(uname -s)" ;;
     esac
-    
+
     case "$(uname -m)" in
         x86_64|amd64)   arch="amd64" ;;
         arm64|aarch64)  arch="arm64" ;;
         *)              error "Unsupported architecture: $(uname -m)" ;;
     esac
-    
+
     echo "${os}_${arch}"
 }
 
@@ -59,9 +59,9 @@ detect_platform() {
 get_latest_release() {
     local api_url="https://api.github.com/repos/${REPO}/releases/latest"
     local release_info
-    
+
     log "Fetching latest release information..."
-    
+
     if command -v curl >/dev/null 2>&1; then
         release_info=$(curl -s "$api_url")
     elif command -v wget >/dev/null 2>&1; then
@@ -69,7 +69,7 @@ get_latest_release() {
     else
         error "Either curl or wget is required to download the release"
     fi
-    
+
     echo "$release_info" | grep '"tag_name":' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/'
 }
 
@@ -80,9 +80,9 @@ install_binary() {
     local filename="${BINARY_NAME}"
     local download_url="https://github.com/${REPO}/releases/download/${version}/${BINARY_NAME}_${platform}"
     local temp_file="/tmp/${filename}"
-    
+
     log "Downloading ${BINARY_NAME} ${version} for ${platform}..."
-    
+
     if command -v curl >/dev/null 2>&1; then
         curl -sL "$download_url" -o "$temp_file"
     elif command -v wget >/dev/null 2>&1; then
@@ -90,14 +90,14 @@ install_binary() {
     else
         error "Either curl or wget is required to download the release"
     fi
-    
+
     if [ ! -f "$temp_file" ]; then
         error "Failed to download binary from $download_url"
     fi
-    
+
     # Make binary executable
     chmod +x "$temp_file"
-    
+
     # Check if install directory is writable
     if [ ! -w "$INSTALL_DIR" ]; then
         warn "Install directory $INSTALL_DIR is not writable. Trying with sudo..."
@@ -105,7 +105,7 @@ install_binary() {
     else
         mv "$temp_file" "$INSTALL_DIR/$BINARY_NAME"
     fi
-    
+
     success "${BINARY_NAME} installed to $INSTALL_DIR/$BINARY_NAME"
 }
 
@@ -125,12 +125,12 @@ verify_installation() {
 # Main installation process
 main() {
     log "Starting Devgraph CLI installation..."
-    
+
     # Detect platform
     local platform
     platform=$(detect_platform)
     log "Detected platform: $platform"
-    
+
     # Get latest release
     local version
     version=$(get_latest_release)
@@ -138,13 +138,13 @@ main() {
         error "Failed to fetch latest release information"
     fi
     log "Latest version: $version"
-    
+
     # Install binary
     install_binary "$platform" "$version"
-    
+
     # Verify installation
     verify_installation
-    
+
     success "Devgraph CLI installation completed!"
 }
 

@@ -20,13 +20,13 @@ type MCPCommand struct {
 
 type MCPCreateCommand struct {
 	EnvWrapperCommand
-	Name                string   `arg:"" required:"" help:"Name of the MCP resource to create."`
-	Url                 string   `arg:"" required:"" help:"URL of the MCP resource to create."`
-	Description         string   `arg:"" optional:"" help:"Description of the MCP resource."`
-	Headers             []string `flag:"header,H" optional:"" help:"Headers as key:value pairs (can be specified multiple times)."`
-	DevgraphAuth        *bool    `flag:"devgraph-auth" optional:"" help:"Enable Devgraph authentication for this endpoint."`
-	SupportsResources   *bool    `flag:"supports-resources" optional:"" help:"Indicates if this endpoint supports MCP resources."`
-	OAuthServiceID      *string  `flag:"oauth-service-id" optional:"" help:"Link to an OAuth service by ID."`
+	Name              string   `arg:"" required:"" help:"Name of the MCP resource to create."`
+	Url               string   `arg:"" required:"" help:"URL of the MCP resource to create."`
+	Description       string   `arg:"" optional:"" help:"Description of the MCP resource."`
+	Headers           []string `flag:"header,H" optional:"" help:"Headers as key:value pairs (can be specified multiple times)."`
+	DevgraphAuth      *bool    `flag:"devgraph-auth" optional:"" help:"Enable Devgraph authentication for this endpoint."`
+	SupportsResources *bool    `flag:"supports-resources" optional:"" help:"Indicates if this endpoint supports MCP resources."`
+	OAuthServiceID    *string  `flag:"oauth-service-id" optional:"" help:"Link to an OAuth service by ID."`
 }
 
 type MCPListCommand struct {
@@ -41,14 +41,14 @@ type MCPGetCommand struct {
 
 type MCPUpdateCommand struct {
 	EnvWrapperCommand
-	Id                  string   `arg:"" required:"" help:"ID of the MCP resource to update."`
-	Name                *string  `flag:"name" help:"Update the name of the MCP resource."`
-	Url                 *string  `flag:"url" help:"Update the URL of the MCP resource."`
-	Description         *string  `flag:"description" help:"Update the description of the MCP resource."`
-	Headers             []string `flag:"header,H" help:"Update headers as key:value pairs (replaces all existing headers)."`
-	DevgraphAuth        *bool    `flag:"devgraph-auth" help:"Update Devgraph authentication setting."`
-	SupportsResources   *bool    `flag:"supports-resources" help:"Update supports resources setting."`
-	OAuthServiceID      *string  `flag:"oauth-service-id" help:"Link to an OAuth service by ID (when API supports it)."`
+	Id                string   `arg:"" required:"" help:"ID of the MCP resource to update."`
+	Name              *string  `flag:"name" help:"Update the name of the MCP resource."`
+	Url               *string  `flag:"url" help:"Update the URL of the MCP resource."`
+	Description       *string  `flag:"description" help:"Update the description of the MCP resource."`
+	Headers           []string `flag:"header,H" help:"Update headers as key:value pairs (replaces all existing headers)."`
+	DevgraphAuth      *bool    `flag:"devgraph-auth" help:"Update Devgraph authentication setting."`
+	SupportsResources *bool    `flag:"supports-resources" help:"Update supports resources setting."`
+	OAuthServiceID    *string  `flag:"oauth-service-id" help:"Link to an OAuth service by ID (when API supports it)."`
 }
 
 type MCPDeleteCommand struct {
@@ -81,7 +81,7 @@ func (e *MCPCreateCommand) Run() error {
 		Name: e.Name,
 		URL:  e.Url,
 	}
-	
+
 	// Set optional fields if provided
 	if e.Description != "" {
 		request.Description = api.NewOptNilString(e.Description)
@@ -154,8 +154,8 @@ func (e *MCPGetCommand) Run() error {
 		} else {
 			oauthServiceID = "(not set)"
 		}
-		
-		fmt.Printf("ID: %s\nName: %s\nURL: %s\nDescription: %s\nOAuth Service ID: %s\n", 
+
+		fmt.Printf("ID: %s\nName: %s\nURL: %s\nDescription: %s\nOAuth Service ID: %s\n",
 			r.ID, r.Name, r.URL, description, oauthServiceID)
 	default:
 		return fmt.Errorf("MCP endpoint with ID '%s' not found", e.Id)
@@ -263,8 +263,8 @@ func (e *MCPUpdateCommand) Run() error {
 	}
 
 	// Check if there's anything to update
-	if e.Name == nil && e.Url == nil && e.Description == nil && 
-		len(e.Headers) == 0 && e.DevgraphAuth == nil && 
+	if e.Name == nil && e.Url == nil && e.Description == nil &&
+		len(e.Headers) == 0 && e.DevgraphAuth == nil &&
 		e.SupportsResources == nil && e.OAuthServiceID == nil {
 		return fmt.Errorf("no fields specified to update")
 	}
@@ -327,7 +327,7 @@ func (e *MCPUpdateCommand) Run() error {
 	params := api.UpdateMcpendpointParams{
 		McpendpointID: mcpUUID,
 	}
-	
+
 	resp, err := client.UpdateMcpendpoint(context.Background(), &request, params)
 	if err != nil {
 		return fmt.Errorf("failed to update MCP endpoint: %w", err)

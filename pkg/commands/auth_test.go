@@ -1,11 +1,41 @@
 package commands
 
 import (
+	"errors"
+	"os"
 	"testing"
 
+	"github.com/arctir/devgraph-cli/pkg/auth"
 	"github.com/arctir/devgraph-cli/pkg/config"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/oauth2"
 )
+
+// setupTempConfig sets XDG_CONFIG_HOME to a temp directory for testing
+// Returns a cleanup function to restore the original value
+func setupTempConfig(t *testing.T) func() {
+	t.Helper()
+	originalXDG := os.Getenv("XDG_CONFIG_HOME")
+	tempDir := t.TempDir()
+	os.Setenv("XDG_CONFIG_HOME", tempDir)
+	return func() {
+		if originalXDG == "" {
+			os.Unsetenv("XDG_CONFIG_HOME")
+		} else {
+			os.Setenv("XDG_CONFIG_HOME", originalXDG)
+		}
+	}
+}
+
+// mockAuthenticator is a test implementation of auth.Authenticator
+type mockAuthenticator struct {
+	token *oauth2.Token
+	err   error
+}
+
+func (m *mockAuthenticator) Authenticate(cfg config.Config) (*oauth2.Token, error) {
+	return m.token, m.err
+}
 
 func TestAuthCommand_Structure(t *testing.T) {
 	authCmd := AuthCommand{}
@@ -49,7 +79,16 @@ func TestParseJWT_EmptyToken(t *testing.T) {
 }
 
 func TestAuthLoginCommand_Run(t *testing.T) {
-	// Test that AuthLoginCommand delegates to Auth.Run()
+	// Save original authenticator and restore after test
+	originalAuth := auth.AuthenticatorImpl
+	defer func() { auth.AuthenticatorImpl = originalAuth }()
+
+	// Mock the authenticator to return an error (simulating auth failure)
+	auth.AuthenticatorImpl = &mockAuthenticator{
+		token: nil,
+		err:   errors.New("mock auth error"),
+	}
+
 	loginCmd := &AuthLoginCommand{
 		Config: config.Config{
 			ApiURL:    "https://api.example.com",
@@ -58,9 +97,9 @@ func TestAuthLoginCommand_Run(t *testing.T) {
 		},
 	}
 
-	// This will fail due to network/auth issues, but should not panic
+	// This will fail due to mocked auth error
 	err := loginCmd.Run()
-	assert.Error(t, err) // Expected to fail due to invalid config/no network
+	assert.Error(t, err) // Expected to fail due to mock error
 }
 
 func TestAuthLogoutCommand_Run(t *testing.T) {
@@ -79,6 +118,10 @@ func TestAuthLogoutCommand_Run(t *testing.T) {
 }
 
 func TestAuthWhoamiCommand_Run(t *testing.T) {
+	// Use temp config so we don't pick up real credentials
+	cleanup := setupTempConfig(t)
+	defer cleanup()
+
 	whoamiCmd := &AuthWhoamiCommand{
 		Config: config.Config{
 			ApiURL:    "https://api.example.com",
@@ -87,13 +130,23 @@ func TestAuthWhoamiCommand_Run(t *testing.T) {
 		},
 	}
 
-	// This will fail due to no credentials, but should not panic
+	// This will fail due to no credentials in temp config
 	err := whoamiCmd.Run()
 	assert.Error(t, err) // Expected to fail due to no user credentials
 }
 
 func TestAuth_Run_InvalidConfig(t *testing.T) {
-	auth := &Auth{
+	// Save original authenticator and restore after test
+	originalAuth := auth.AuthenticatorImpl
+	defer func() { auth.AuthenticatorImpl = originalAuth }()
+
+	// Mock the authenticator to return an error
+	auth.AuthenticatorImpl = &mockAuthenticator{
+		token: nil,
+		err:   errors.New("invalid config error"),
+	}
+
+	authCmd := &Auth{
 		Config: config.Config{
 			ApiURL:    "invalid-url",
 			IssuerURL: "invalid-issuer",
@@ -101,7 +154,7 @@ func TestAuth_Run_InvalidConfig(t *testing.T) {
 		},
 	}
 
-	// Should fail due to invalid configuration
-	err := auth.Run()
+	// Should fail due to mocked error
+	err := authCmd.Run()
 	assert.Error(t, err)
 }

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"os"
 	"testing"
 
 	"github.com/arctir/devgraph-cli/pkg/config"
@@ -17,19 +18,41 @@ func TestNoEnvironmentError(t *testing.T) {
 }
 
 func TestGetEnvironments_InvalidConfig(t *testing.T) {
+	// Use temp config so we don't pick up real credentials
+	originalXDG := os.Getenv("XDG_CONFIG_HOME")
+	os.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	defer func() {
+		if originalXDG == "" {
+			os.Unsetenv("XDG_CONFIG_HOME")
+		} else {
+			os.Setenv("XDG_CONFIG_HOME", originalXDG)
+		}
+	}()
+
 	invalidConfig := config.Config{
 		ApiURL:    "invalid-url",
-		IssuerURL: "invalid-issuer", 
+		IssuerURL: "invalid-issuer",
 		ClientID:  "invalid-client",
 	}
 
 	envs, err := GetEnvironments(invalidConfig)
-	
+
 	assert.Error(t, err)
 	assert.Nil(t, envs)
 }
 
 func TestCheckEnvironment_WithValidEnvironment(t *testing.T) {
+	// Use temp config so we don't pick up real credentials
+	originalXDG := os.Getenv("XDG_CONFIG_HOME")
+	os.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	defer func() {
+		if originalXDG == "" {
+			os.Unsetenv("XDG_CONFIG_HOME")
+		} else {
+			os.Setenv("XDG_CONFIG_HOME", originalXDG)
+		}
+	}()
+
 	// Test scenario where environment is already set
 	testConfig := &config.Config{
 		ApiURL:    "https://api.example.com",
@@ -37,10 +60,10 @@ func TestCheckEnvironment_WithValidEnvironment(t *testing.T) {
 		ClientID:  "test-client",
 	}
 
-	// This will fail due to network call, but we can test the logic structure
+	// This will fail due to no credentials in temp config
 	result, err := CheckEnvironment(testConfig)
 
-	// Should return error due to invalid credentials/network, but not panic
+	// Should return error due to no credentials, but not panic
 	assert.Error(t, err)
 	assert.False(t, result)
 }

@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23" # Match your project's Go version
+          go-version: "1.24" # Match your project's Go version
           cache: true
 
       - name: Install dependencies
@@ -49,7 +49,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23" # Match your project's Go version
+          go-version: "1.24" # Match your project's Go version
           cache: true # Cache Go modules for faster builds
 
       # Run GoReleaser to build and release

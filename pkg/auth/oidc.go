@@ -16,6 +16,23 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// Authenticator defines the interface for authentication operations
+type Authenticator interface {
+	Authenticate(cfg config.Config) (*oauth2.Token, error)
+}
+
+// DefaultAuthenticator is the production implementation of Authenticator
+type DefaultAuthenticator struct{}
+
+// Authenticate performs the OIDC authentication flow
+func (d *DefaultAuthenticator) Authenticate(cfg config.Config) (*oauth2.Token, error) {
+	return Authenticate(cfg)
+}
+
+// AuthenticatorImpl is the active authenticator implementation.
+// Override this in tests to mock authentication.
+var AuthenticatorImpl Authenticator = &DefaultAuthenticator{}
+
 // WellKnownConfig represents the standard OpenID Connect discovery document
 type WellKnownConfig struct {
 	Issuer                string `json:"issuer"`

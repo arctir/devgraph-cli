@@ -68,7 +68,7 @@ func parseJWT(tokenString string) (*jwt.MapClaims, error) {
 
 func (a *Auth) Run() error {
 	// Step 1: Authenticate with OIDC
-	token, err := auth.Authenticate(a.Config)
+	token, err := auth.AuthenticatorImpl.Authenticate(a.Config)
 	if err != nil {
 		return err
 	}
@@ -229,33 +229,32 @@ func (a *AuthLoginCommand) Run() error {
 	} else if a.Cluster != "" {
 		// Use explicitly specified cluster
 		a.Config.ApiURL = a.Cluster
-		// Look up OAuth settings from our map based on the URL
-		found := false
-		for _, envConfig := range config.EnvironmentConfigMap {
-			if envConfig.ApiURL == a.Cluster {
-				a.Config.IssuerURL = envConfig.IssuerURL
-				a.Config.ClientID = envConfig.ClientID
-				found = true
-				break
-			}
+		fmt.Printf("Fetching OIDC configuration from %s...\n", a.Cluster)
+		issuerURL, clientID, err := config.FetchOIDCConfig(a.Cluster)
+		if err != nil {
+			return fmt.Errorf("failed to fetch OIDC configuration: %w", err)
 		}
-		if !found {
-			// Unknown cluster - use production OAuth settings as default
-			prodConfig := config.EnvironmentConfigMap["production"]
-			a.Config.IssuerURL = prodConfig.IssuerURL
-			a.Config.ClientID = prodConfig.ClientID
-			fmt.Printf("Logging in to custom cluster: %s\n", a.Cluster)
-		}
+		a.Config.IssuerURL = issuerURL
+		a.Config.ClientID = clientID
 	} else {
 		// Default to production
 		prodConfig := config.EnvironmentConfigMap["production"]
 		a.Config.ApiURL = prodConfig.ApiURL
-		a.Config.IssuerURL = prodConfig.IssuerURL
-		a.Config.ClientID = prodConfig.ClientID
+		fmt.Printf("Fetching OIDC configuration from %s...\n", prodConfig.ApiURL)
+		issuerURL, clientID, err := config.FetchOIDCConfig(prodConfig.ApiURL)
+		if err != nil {
+			// Fall back to hardcoded values if API is unavailable
+			fmt.Printf("⚠️  Could not fetch OIDC config from API, using defaults: %v\n", err)
+			a.Config.IssuerURL = prodConfig.IssuerURL
+			a.Config.ClientID = prodConfig.ClientID
+		} else {
+			a.Config.IssuerURL = issuerURL
+			a.Config.ClientID = clientID
+		}
 	}
 
 	// Step 1: Authenticate with OIDC
-	token, err := auth.Authenticate(a.Config)
+	token, err := auth.AuthenticatorImpl.Authenticate(a.Config)
 	if err != nil {
 		return err
 	}

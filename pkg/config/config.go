@@ -4,7 +4,10 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -288,6 +291,38 @@ func SaveCredentials(creds Credentials) error {
 	// Also save to legacy credentials for backward compatibility
 	userConfig.Credentials = creds
 	return SaveUserConfig(userConfig)
+}
+
+// FetchOIDCConfig fetches OIDC configuration from the API server
+// This replaces the hardcoded EnvironmentConfigMap by dynamically fetching
+// the issuer URL and client ID from the server
+func FetchOIDCConfig(apiURL string) (issuerURL string, clientID string, err error) {
+	// Construct the OIDC config endpoint URL
+	configURL := apiURL + "/api/v1/oauth/oidc-config"
+
+	// Make unauthenticated HTTP GET request
+	resp, err := http.Get(configURL)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to fetch OIDC config from %s: %w", configURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", "", fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse the JSON response
+	var oidcConfig struct {
+		IssuerURL string `json:"issuer_url"`
+		ClientID  string `json:"client_id"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&oidcConfig); err != nil {
+		return "", "", fmt.Errorf("failed to parse OIDC config response: %w", err)
+	}
+
+	return oidcConfig.IssuerURL, oidcConfig.ClientID, nil
 }
 
 // IsFirstTimeSetup checks if this is the first time the user is running devgraph

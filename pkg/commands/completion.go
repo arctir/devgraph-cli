@@ -662,7 +662,9 @@ complete -c %s -f -n "__fish_seen_subcommand_from completion" -l "install" -d "I
 		ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name,
 		ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name,
 		ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name,
-		ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name)
+		ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name,
+		ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name, ctx.Model.Name,
+		ctx.Model.Name)
 }
 
 // generatePowershellCompletion generates a PowerShell completion script

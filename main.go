@@ -45,6 +45,8 @@ type CLI struct {
 	OAuthService commands.OAuthServiceCommand `kong:"cmd,name='oauthservice',help='Manage OAuth services for Devgraph'"`
 	// Provider manages discovery providers
 	Provider commands.ProviderCommand `kong:"cmd,help='Manage discovery providers'"`
+	// Relation manages entity relations
+	Relation commands.RelationCommand `kong:"cmd,help='Manage entity relations'"`
 	// Subscription manages subscription information
 	Subscription commands.SubscriptionCommand `kong:"cmd,help='Manage subscriptions'"`
 	// Suggestion manages chat suggestions

@@ -1,0 +1,37 @@
+# Conventional Commits configuration
+# https://www.conventionalcommits.org/
+
+# Valid commit types
+types:
+  - feat      # New feature
+  - fix       # Bug fix
+  - docs      # Documentation changes
+  - style     # Code style changes (formatting, missing semicolons, etc)
+  - refactor  # Code refactoring
+  - perf      # Performance improvements
+  - test      # Adding or updating tests
+  - build     # Build system or external dependency changes
+  - ci        # CI/CD configuration changes
+  - chore     # Other changes that don't modify src or test files
+  - revert    # Revert a previous commit
+
+# Optional scopes (can be left empty)
+scopes:
+  - auth
+  - cli
+  - config
+  - entity
+  - environment
+  - provider
+  - relation
+  - security
+  - workflow
+
+# Commit message format:
+# <type>(<scope>): <subject>
+#
+# Examples:
+#   feat(auth): add OIDC authentication support
+#   fix(entity): correct file permissions for exported files
+#   docs: update installation instructions
+#   ci(workflow): upgrade Go to 1.24

@@ -1,0 +1,84 @@
+# Semantic Release Configuration
+# https://semantic-release.gitbook.io/semantic-release/
+
+branches:
+  - main
+
+plugins:
+  # Analyze commits to determine the type of release
+  - - "@semantic-release/commit-analyzer"
+    - preset: conventionalcommits
+      releaseRules:
+        - type: feat
+          release: minor
+        - type: fix
+          release: patch
+        - type: perf
+          release: patch
+        - type: revert
+          release: patch
+        - type: docs
+          release: false
+        - type: style
+          release: false
+        - type: refactor
+          release: patch
+        - type: test
+          release: false
+        - type: build
+          release: patch
+        - type: ci
+          release: false
+        - type: chore
+          release: false
+        - breaking: true
+          release: major
+
+  # Generate release notes
+  - - "@semantic-release/release-notes-generator"
+    - preset: conventionalcommits
+      presetConfig:
+        types:
+          - type: feat
+            section: Features
+          - type: fix
+            section: Bug Fixes
+          - type: perf
+            section: Performance Improvements
+          - type: revert
+            section: Reverts
+          - type: refactor
+            section: Code Refactoring
+          - type: build
+            section: Build System
+          - type: docs
+            section: Documentation
+            hidden: false
+          - type: style
+            section: Styles
+            hidden: true
+          - type: test
+            section: Tests
+            hidden: true
+          - type: ci
+            section: Continuous Integration
+            hidden: true
+          - type: chore
+            section: Chores
+            hidden: true
+
+  # Create a changelog file
+  - - "@semantic-release/changelog"
+    - changelogFile: CHANGELOG.md
+
+  # Commit the changelog and version updates
+  - - "@semantic-release/git"
+    - assets:
+        - CHANGELOG.md
+      message: "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+
+  # Create a GitHub release
+  - "@semantic-release/github"
+
+# Tag format
+tagFormat: "v${version}"

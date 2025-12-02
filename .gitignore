@@ -1,0 +1,5 @@
+dg
+coverage.*
+dist
+go.work*
+backups

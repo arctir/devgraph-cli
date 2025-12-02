@@ -1,0 +1,21 @@
+# .goreleaser.yaml
+version: 2
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    targets:
+      - linux_amd64
+      - linux_arm64
+      - windows_amd64
+      - darwin_amd64
+      - darwin_arm64
+    ldflags:
+      - -s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}} -X main.Date={{.Date}}
+    binary: "{{ .Env.CLI_NAME }}"
+
+release: {}
+
+changelog:
+  disable: false # Replaced 'skip' with 'disable'
+  use: github

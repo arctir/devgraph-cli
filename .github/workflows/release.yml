@@ -1,0 +1,93 @@
+name: Release Go CLI with GoReleaser
+
+# Workflow-wide environment variables
+env:
+  CLI_NAME: "devgraph" # Your CLI's name, used in .goreleaser.yaml
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*" # Trigger on version tags like v1.0.0
+
+permissions:
+  contents: write # Required to upload assets to the release
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24" # Match your project's Go version
+          cache: true
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: make test
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: latest
+
+  semantic-release:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
+      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Semantic Release
+        id: semantic
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          semantic_version: 24
+          extra_plugins: |
+            conventional-changelog-conventionalcommits@8
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  goreleaser:
+    needs: [test, semantic-release]
+    runs-on: ubuntu-latest
+    if: needs.semantic-release.outputs.new_release_published == 'true' || startsWith(github.ref, 'refs/tags/v')
+    steps:
+      # Checkout the repository with full history
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Needed for changelog generation
+
+      # Set up Go environment
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24" # Match your project's Go version
+          cache: true # Cache Go modules for faster builds
+
+      # Run GoReleaser to build and release
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser # Use 'goreleaser-pro' for pro features
+          version: "~> v2" # Pin to v2.x, or use 'latest'
+          args: release --clean # Build and publish, clean build dir after
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Auth for GitHub Releases
+
+      # Optional: Print release URL (for debugging or logs)
+      - name: Print Release URL
+        run: echo "Release published at ${{ github.event.release.html_url }}"

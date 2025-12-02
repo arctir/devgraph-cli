@@ -1,3 +1,9 @@
+## [0.1.4](https://github.com/arctir/devgraph-cli/compare/v0.1.3...v0.1.4) (2025-12-02)
+
+### Bug Fixes
+
+* **install:** redirect log output to stderr in get_latest_release ([a922ad5](https://github.com/arctir/devgraph-cli/commit/a922ad5ebb1c9031f2dfea336029b40cf0bc3c68))
+
 ## [0.1.3](https://github.com/arctir/devgraph-cli/compare/v0.1.2...v0.1.3) (2025-12-02)
 
 ### Bug Fixes

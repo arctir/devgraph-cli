@@ -1,3 +1,9 @@
+## [0.1.3](https://github.com/arctir/devgraph-cli/compare/v0.1.2...v0.1.3) (2025-12-02)
+
+### Bug Fixes
+
+* **ci:** checkout correct tag in goreleaser job ([ce31140](https://github.com/arctir/devgraph-cli/commit/ce3114074e88697165af4eb13e50177e40a6a051))
+
 ## [0.1.2](https://github.com/arctir/devgraph-cli/compare/v0.1.1...v0.1.2) (2025-12-02)
 
 ### Bug Fixes

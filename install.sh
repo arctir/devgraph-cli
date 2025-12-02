@@ -77,34 +77,53 @@ get_latest_release() {
 install_binary() {
     local platform="$1"
     local version="$2"
-    local filename="${BINARY_NAME}"
-    local download_url="https://github.com/${REPO}/releases/download/${version}/${BINARY_NAME}_${platform}"
-    local temp_file="/tmp/${filename}"
+    local version_number="${version#v}"  # Remove 'v' prefix for filename
+    local archive_name="devgraph-cli_${version_number}_${platform}.tar.gz"
+    local download_url="https://github.com/${REPO}/releases/download/${version}/${archive_name}"
+    local temp_dir="/tmp/devgraph-cli-install"
+    local temp_archive="${temp_dir}/${archive_name}"
 
     log "Downloading ${BINARY_NAME} ${version} for ${platform}..."
 
+    # Create temp directory
+    mkdir -p "$temp_dir"
+
     if command -v curl >/dev/null 2>&1; then
-        curl -sL "$download_url" -o "$temp_file"
+        curl -sL "$download_url" -o "$temp_archive"
     elif command -v wget >/dev/null 2>&1; then
-        wget -q "$download_url" -O "$temp_file"
+        wget -q "$download_url" -O "$temp_archive"
     else
         error "Either curl or wget is required to download the release"
     fi
 
-    if [ ! -f "$temp_file" ]; then
-        error "Failed to download binary from $download_url"
+    if [ ! -f "$temp_archive" ]; then
+        error "Failed to download archive from $download_url"
+    fi
+
+    log "Extracting archive..."
+    tar -xzf "$temp_archive" -C "$temp_dir"
+
+    # Find the binary in the extracted files
+    local binary_path
+    binary_path=$(find "$temp_dir" -name "$BINARY_NAME" -type f | head -n 1)
+
+    if [ -z "$binary_path" ]; then
+        error "Binary '$BINARY_NAME' not found in archive"
     fi
 
     # Make binary executable
-    chmod +x "$temp_file"
+    chmod +x "$binary_path"
 
     # Check if install directory is writable
     if [ ! -w "$INSTALL_DIR" ]; then
         warn "Install directory $INSTALL_DIR is not writable. Trying with sudo..."
-        sudo mv "$temp_file" "$INSTALL_DIR/$BINARY_NAME"
+        sudo mv "$binary_path" "$INSTALL_DIR/$BINARY_NAME"
     else
-        mv "$temp_file" "$INSTALL_DIR/$BINARY_NAME"
+        mv "$binary_path" "$INSTALL_DIR/$BINARY_NAME"
     fi
+
+    # Clean up
+    rm -rf "$temp_dir"
 
     success "${BINARY_NAME} installed to $INSTALL_DIR/$BINARY_NAME"
 }

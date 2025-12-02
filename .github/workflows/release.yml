@@ -2,7 +2,7 @@ name: Release Go CLI with GoReleaser
 
 # Workflow-wide environment variables
 env:
-  CLI_NAME: "devgraph" # Your CLI's name, used in .goreleaser.yaml
+  CLI_NAME: "dg" # Your CLI's name, used in .goreleaser.yaml
 
 on:
   push:

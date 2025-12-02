@@ -1,13 +1,14 @@
 {
   "global": {
-    "nosec": false,
-    "show-ignored": false,
-    "exclude": {
-      "G107": "Needed for API client with dynamic URLs",
-      "G204": "Needed for editor integration",
-      "G301": "Intentional directory permissions for config",
-      "G304": "Needed for YAML file operations",
-      "G306": "Intentional file permissions for config"
-    }
+    "exclude": ["G104", "G107", "G204", "G301", "G304", "G306"]
+  },
+  "_comment": "Note: gosec config file support appears broken. Exclusions are applied via -exclude flag in .github/workflows/security.yml",
+  "_exclusion_reasons": {
+    "G104": "Unchecked errors in non-critical paths (UI formatting, etc.)",
+    "G107": "Dynamic URLs required for API client configuration",
+    "G204": "Command execution needed for editor integration",
+    "G301": "Intentional directory permissions for config directories",
+    "G304": "File path operations required for YAML entity management",
+    "G306": "Shell completion scripts require 0644, entity files use 0600"
   }
 }

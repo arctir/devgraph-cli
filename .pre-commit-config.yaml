@@ -14,8 +14,29 @@ repos:
       - id: mixed-line-ending
       - id: detect-private-key
 
-  # Go formatting
+  # Go checks (mirroring GA workflows)
   - repo: https://github.com/dnephin/pre-commit-golang
     rev: v0.5.1
     hooks:
       - id: go-fmt
+      - id: go-vet
+      - id: go-mod-tidy
+      - id: go-unit-tests
+        args: [-race, -coverprofile=coverage.out, -covermode=atomic]
+
+  # Go linting (mirroring GA workflows)
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.62.2
+    hooks:
+      - id: golangci-lint
+        args: [--config=.golangci.yml]
+
+  # Security scanning (mirroring GA workflows)
+  - repo: local
+    hooks:
+      - id: gosec
+        name: gosec security scanner
+        entry: bash -c 'gosec -exclude=G104,G107,G204,G301,G304,G306 ./...'
+        language: system
+        pass_filenames: false
+        files: \.go$

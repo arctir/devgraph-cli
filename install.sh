@@ -60,7 +60,7 @@ get_latest_release() {
     local api_url="https://api.github.com/repos/${REPO}/releases/latest"
     local release_info
 
-    log "Fetching latest release information..."
+    log "Fetching latest release information..." >&2
 
     if command -v curl >/dev/null 2>&1; then
         release_info=$(curl -s "$api_url")

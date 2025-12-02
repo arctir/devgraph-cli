@@ -13,6 +13,8 @@ on:
 
 permissions:
   contents: write # Required to upload assets to the release
+  issues: write # Required for semantic-release to comment on issues
+  pull-requests: write # Required for semantic-release to comment on PRs
 
 jobs:
   test:

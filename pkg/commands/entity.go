@@ -920,7 +920,7 @@ func (e *EntityBackupCommand) Run() error {
 		}
 
 		// Write to file
-		err = os.WriteFile(filepath, data, 0644)
+		err = os.WriteFile(filepath, data, 0600)
 		if err != nil {
 			fmt.Printf("Warning: failed to write definition %s/%s: %v\n", def.Group, def.Kind, err)
 			continue
@@ -991,7 +991,7 @@ func (e *EntityBackupCommand) Run() error {
 		}
 
 		// Write to file
-		err = os.WriteFile(filepath, data, 0644)
+		err = os.WriteFile(filepath, data, 0600)
 		if err != nil {
 			fmt.Printf("Warning: failed to write entity %s/%s: %v\n", entity.Namespace, entity.Name, err)
 			continue
@@ -1044,7 +1044,7 @@ func (e *EntityBackupCommand) Run() error {
 			fmt.Printf("Warning: failed to marshal relations: %v\n", err)
 		} else {
 			// Write to file
-			err = os.WriteFile(filepath, data, 0644)
+			err = os.WriteFile(filepath, data, 0600)
 			if err != nil {
 				fmt.Printf("Warning: failed to write relations: %v\n", err)
 			} else {

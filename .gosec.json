@@ -1,10 +1,13 @@
 {
-  "exclude": [
-    "G107",
-    "G204",
-    "G301",
-    "G304",
-    "G306"
-  ],
-  "exclude-generated": true
+  "global": {
+    "nosec": false,
+    "show-ignored": false,
+    "exclude": {
+      "G107": "Needed for API client with dynamic URLs",
+      "G204": "Needed for editor integration",
+      "G301": "Intentional directory permissions for config",
+      "G304": "Needed for YAML file operations",
+      "G306": "Intentional file permissions for config"
+    }
+  }
 }

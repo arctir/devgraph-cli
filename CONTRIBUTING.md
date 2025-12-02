@@ -1,80 +1,119 @@
 # Contributing to Devgraph CLI
 
-Thank you for your interest in contributing to Devgraph CLI! This document provides guidelines and information for contributors.
+## Commit Message Format
 
-## Getting Started
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) for commit messages. This enables automatic semantic versioning and changelog generation.
 
-1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/devgraph-cli.git`
-3. Create a branch for your changes: `git checkout -b feature/your-feature-name`
+### Format
 
-## Development Setup
+```
+<type>(<scope>): <subject>
 
-### Prerequisites
+<body>
 
-- Go 1.24 or later
-- Make
-
-### Building
-
-```bash
-make build
+<footer>
 ```
 
-### Running Tests
+### Type
 
-```bash
-# Run all tests
-make test
+Must be one of the following:
 
-# Run tests with coverage
-make test-cover
+- **feat**: A new feature (triggers minor version bump)
+- **fix**: A bug fix (triggers patch version bump)
+- **perf**: A performance improvement (triggers patch version bump)
+- **refactor**: Code refactoring (triggers patch version bump)
+- **build**: Build system changes (triggers patch version bump)
+- **docs**: Documentation only changes (no version bump)
+- **style**: Code style changes, formatting (no version bump)
+- **test**: Adding or updating tests (no version bump)
+- **ci**: CI/CD configuration changes (no version bump)
+- **chore**: Other changes that don't modify src or test files (no version bump)
+- **revert**: Revert a previous commit (triggers patch version bump)
 
-# Run tests with verbose output
-make test-verbose
+### Scope (Optional)
+
+The scope should specify the area of the codebase:
+
+- `auth` - Authentication related changes
+- `cli` - CLI interface changes
+- `config` - Configuration changes
+- `entity` - Entity management
+- `environment` - Environment management
+- `provider` - Provider related changes
+- `relation` - Relation management
+- `security` - Security related changes
+- `workflow` - GitHub Actions workflow changes
+
+### Breaking Changes
+
+To trigger a major version bump, add `BREAKING CHANGE:` in the commit body or footer, or add `!` after the type/scope:
+
+```
+feat(auth)!: change authentication flow
+
+BREAKING CHANGE: The authentication flow has been completely rewritten.
+Users will need to re-authenticate.
 ```
 
-### Code Quality
+### Examples
 
-```bash
-# Format code
-make fmt
+#### New Feature (Minor Version Bump)
+```
+feat(entity): add support for batch entity operations
 
-# Lint code (requires golangci-lint)
-make lint
+Implement batch create, update, and delete operations for entities
+to improve performance when working with multiple entities.
 ```
 
-## Submitting Changes
+#### Bug Fix (Patch Version Bump)
+```
+fix(auth): correct token refresh logic
 
-### Pull Request Process
+Fix issue where tokens were not being refreshed properly when
+they expired during a long-running operation.
+```
 
-1. Ensure your code follows the existing style and passes all tests
-2. Update documentation if you're changing functionality
-3. Add tests for new features
-4. Submit a pull request with a clear description of your changes
+#### Documentation (No Version Bump)
+```
+docs: update installation instructions
 
-### Commit Messages
+Add instructions for installing on Windows and improve
+troubleshooting section.
+```
 
-- Use clear, descriptive commit messages
-- Start with a verb in the imperative mood (e.g., "Add", "Fix", "Update")
-- Keep the first line under 72 characters
+#### Breaking Change (Major Version Bump)
+```
+feat(api)!: redesign API client interface
 
-### Code Style
+BREAKING CHANGE: The API client interface has been redesigned for
+better consistency. Users will need to update their code to use
+the new interface methods.
+```
 
-- Follow standard Go conventions and idioms
-- Run `make fmt` before committing
-- Ensure `make lint` passes without errors
+## Pre-commit Hooks
 
-## Reporting Issues
+This project uses pre-commit hooks to enforce commit message format and code quality. To install the hooks:
 
-When reporting issues, please include:
+```bash
+pre-commit install
+pre-commit install --hook-type commit-msg
+```
 
-- A clear description of the problem
-- Steps to reproduce
-- Expected vs actual behavior
-- Go version and OS information
-- Relevant logs or error messages
+The hooks will automatically:
+- Validate commit messages follow conventional commits format
+- Run Go formatting (go-fmt)
+- Run Go vet
+- Tidy Go modules
+- Run unit tests
+- Run golangci-lint
+- Run gosec security scanner
 
-## License
+## Versioning
 
-By contributing, you agree that your contributions will be licensed under the Apache License 2.0.
+Version numbers are automatically determined from commit messages:
+
+- `fix:` commits bump the patch version (1.0.0 → 1.0.1)
+- `feat:` commits bump the minor version (1.0.0 → 1.1.0)
+- Commits with `BREAKING CHANGE:` bump the major version (1.0.0 → 2.0.0)
+
+Releases are created automatically when commits are pushed to the `main` branch.

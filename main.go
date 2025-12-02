@@ -16,6 +16,28 @@ import (
 	"github.com/arctir/devgraph-cli/pkg/util"
 )
 
+// Version information (set at build time via ldflags)
+var (
+	Version = "dev"
+	Commit  = "none"
+	Date    = "unknown"
+)
+
+// VersionCommand displays version information
+type VersionCommand struct{}
+
+// Run executes the version command
+func (v *VersionCommand) Run() error {
+	fmt.Printf("devgraph version %s\n", Version)
+	if Commit != "none" {
+		fmt.Printf("  commit: %s\n", Commit)
+	}
+	if Date != "unknown" {
+		fmt.Printf("  built: %s\n", Date)
+	}
+	return nil
+}
+
 // CLI represents the main command-line interface structure for Devgraph CLI.
 // It defines all available commands and their subcommands using Kong command-line parser.
 type CLI struct {
@@ -55,6 +77,8 @@ type CLI struct {
 	Token commands.TokenCommand `kong:"cmd,help='Manage opaque tokens for Devgraph'"`
 	// User manages users in the current environment
 	User commands.UserCommand `kong:"cmd,help='Manage users in the current environment'"`
+	// Version displays version information
+	Version VersionCommand `kong:"cmd,help='Show version information'"`
 }
 
 // main is the entry point for the Devgraph CLI application.
@@ -81,8 +105,8 @@ func main() {
 	}
 
 	// Show first-time setup guidance for commands that need authentication
-	// Skip for help, auth, completion, and complete commands since they don't require full config
-	if ctx.Command() != "help" && ctx.Command() != "completion" && !strings.HasPrefix(ctx.Command(), "auth") && !strings.HasPrefix(ctx.Command(), "complete") {
+	// Skip for help, auth, completion, complete, and version commands since they don't require full config
+	if ctx.Command() != "help" && ctx.Command() != "completion" && ctx.Command() != "version" && !strings.HasPrefix(ctx.Command(), "auth") && !strings.HasPrefix(ctx.Command(), "complete") {
 		if shouldShowFirstTimeSetup() {
 			showFirstTimeSetupMessage()
 			return // Don't proceed with the command
